@@ -1,6 +1,7 @@
 #include <amxmodx>
 #include <amxmisc>
 #include <cromchat>
+#include <catch_const>
 
 enum _:ColorsData
 {
@@ -46,7 +47,7 @@ new g_iTypesMenu
 
 public plugin_init()
 {
-	register_plugin("Catch Mod: Trails", "1.0", "mi0")
+	register_plugin("Catch Mod: Trails", CATCHMOD_VER, "mi0")
 
 	register_clcmd("say /trails", "cmd_trails")
 	register_clcmd("CT_CUSTOM_COLOR", "cmd_custom_color")
@@ -313,7 +314,7 @@ public ColorsMenu_Handler(id, iMenu, iItem)
 		StartUserTrail(id)
 	}
 
-	client_print_color(id, id, "You successfuly set your color to ^x03", eTempArray[Name])
+	client_print_color(id, id, "You successfuly set your color to ^x03%s", eTempArray[Name])
 
 	menu_cancel(id)
 	OpenTrailMenu(id)
@@ -354,7 +355,7 @@ public TypesMenu_Handler(id, iMenu, iItem)
 
 	new eTempArray[TrailTypeData]
 	ArrayGetArray(g_aTypesArray, iItem, eTempArray)
-	client_print_color(id, id, "You successfuly set your type to ^x03", eTempArray[Name])
+	client_print_color(id, id, "You successfuly set your type to ^x03%s", eTempArray[Name])
 
 	menu_cancel(id)
 	OpenTrailMenu(id)

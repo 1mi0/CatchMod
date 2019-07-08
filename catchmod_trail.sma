@@ -51,12 +51,13 @@ public plugin_init()
 
 	register_clcmd("say /trails", "cmd_trails")
 	register_clcmd("CT_CUSTOM_COLOR", "cmd_custom_color")
+
+	register_message(99, "OnBeamKill")
 }
 
 public plugin_cfg()
 {
 	g_aColorsArray = ArrayCreate(ColorsData)
-	g_aTypesArray = ArrayCreate(TrailTypeData)
 	LoadSettings()
 	LoadColors()
 	MakeColorsMenu()
@@ -64,6 +65,7 @@ public plugin_cfg()
 
 public plugin_precache()
 {
+	g_aTypesArray = ArrayCreate(TrailTypeData)
 	LoadTypes()
 	MakeTypesMenu()
 }
@@ -325,7 +327,7 @@ MakeTypesMenu()
 {
 	g_iTypesMenu = menu_create("\rTrails Types", "TypesMenu_Handler")
 
-	for (new i, eTempArray[TrailTypeData]; i < g_iColorCount; i++)
+	for (new i, eTempArray[TrailTypeData]; i < g_iTypeCount; i++)
 	{
 		ArrayGetArray(g_aTypesArray, i, eTempArray)
 		menu_additem(g_iTypesMenu, eTempArray[TypeName])
@@ -365,17 +367,24 @@ public TypesMenu_Handler(id, iMenu, iItem)
 StartUserTrail(id)
 {
 	UpdateUserTrail(id)
+	set_task_ex(10.0, "UpdateUserTrail", id, .flags = SetTask_Repeat)
 	g_eUserSettings[id][TrailOn] = true
 }
 
 StopUserTrail(id)
 {
 	KillUserTrail(id)
+	if (task_exists(id))
+	{
+		remove_task(id)
+	}
 	g_eUserSettings[id][TrailOn] = false
 }
 
-UpdateUserTrail(id)
+public UpdateUserTrail(id)
 {
+	KillUserTrail(id)
+
 	new eTempArray[TrailTypeData]
 	ArrayGetArray(g_aTypesArray, g_eUserSettings[id][TrailType], eTempArray)
 
@@ -455,4 +464,12 @@ public cmd_custom_color(id)
 	OpenTrailMenu(id)
 
 	return PLUGIN_HANDLED
+}
+
+public OnBeamKill(iMsg, iDest, id)
+{
+	if (g_eUserSettings[id][TrailOn])
+	{
+		UpdateUserTrail(id)
+	}
 }

@@ -1,13 +1,9 @@
 // Default Includes
 #include <amxmodx>
-#include <amxmisc>
 
 // Module Includes
 #include <reapi>
 #include <hamsandwich>
-
-// 3rd Part Includes
-#include <cromchat>
 
 // Catch Mod Includes
 #include <catch_const>
@@ -15,10 +11,11 @@
 enum _:PlayerData
 {
 	WallTouches,
-	float:Velocity[3]
+	bool:Jump
 }
 
 new g_ePlayerData[33][PlayerData]
+new Float:g_fVel[33][3]
 
 new g_iCvarTouches
 
@@ -31,18 +28,59 @@ public plugin_init()
 
 	//Forwards
 	RegisterHam(Ham_Touch, "player", "OnPlayerTouch")
+	RegisterHam(Ham_Player_PreThink, "player", "OnPlayerThink")
 	RegisterHookChain(RG_CBasePlayer_Jump, "OnPlayerJump")
+}
+
+public OnPlayerJump(id)
+{
+	if (get_entvar(id, var_flags) & FL_ONGROUND)
+	{
+		get_entvar(id, var_velocity, g_fVel[id])
+		g_fVel[id][2] = 250.0
+		set_entvar(id, var_velocity, g_fVel[id])
+		g_fVel[id][2] = 300.0
+	}
+
+	return HC_SUPERCEDE
+}
+
+public OnPlayerThink(id)
+{
+	static iTouches
+	iTouches = get_pcvar_num(g_iCvarTouches)
+
+	if (get_entvar(id, var_flags) & FL_ONGROUND)
+	{
+		if (~get_entvar(id, var_oldbuttons) & IN_JUMP)
+		{
+			g_ePlayerData[id][WallTouches] = 0
+		}
+		else
+		{
+			g_ePlayerData[id][WallTouches] = iTouches
+		}
+	}
+
+	if (g_ePlayerData[id][Jump])
+	{
+		g_fVel[id][0] = 0.0 - g_fVel[id][0]
+		set_entvar(id, var_velocity, g_fVel[id])
+
+		g_ePlayerData[id][WallTouches]++
+		g_ePlayerData[id][Jump] = false
+	}
 }
 
 //Forwards
 public OnPlayerTouch(iPlayer, iSurface)
 {
-	if (g_ePlayerData[iPlayer][WallTouches] >= get_pcvar_num(g_iCvarTouches) || ~get_entvar(iPlayer, var_button) & IN_JUMP)
+	if (g_ePlayerData[iPlayer][WallTouches] >= get_pcvar_num(g_iCvarTouches) || ~get_entvar(iPlayer, var_button) & IN_JUMP || get_entvar(iPlayer, var_flags) & FL_ONGROUND)
 	{
 		return HAM_IGNORED
 	}
 
-	new szClassName[32]
+	static szClassName[33]
 	get_entvar(iSurface, var_classname, szClassName, charsmax(szClassName))
 
 	if (!equal(szClassName, "worldspawn") && !equal(szClassName, "func_breakable"))
@@ -50,30 +88,7 @@ public OnPlayerTouch(iPlayer, iSurface)
 		return HAM_IGNORED
 	}
 
-	g_ePlayerData[iPlayer][Velocity][0] = -g_ePlayerData[iPlayer][Velocity][0]
-	set_entvar(iPlayer, var_velocity, g_ePlayerData[iPlayer][Velocity][0])
+	g_ePlayerData[iPlayer][Jump] = true
 
-	g_ePlayerData[iPlayer][WallTouches]++
-}
-
-public OnPlayerJump(id)
-{
-	if (~get_entvar(id, var_flags) & FL_ONGROUND)
-	{
-		return HAM_IGNORED
-	}
-
-	get_entvar(id, var_velocity, g_ePlayerData[id][Velocity])
-	g_ePlayerData[id][Velocity][2] = 250
-	set_entvar(id, var_velocity, g_ePlayerData[id][Velocity])
-	g_ePlayerData[id][Velocity][2] = 300
-
-	if (~get_entvar(id, var_oldbuttons) & IN_JUMP)
-	{
-		g_ePlayerData[id][WallTouches] = 0
-	}
-	else
-	{
-		g_ePlayerData[id][WallTouches] = get_pcvar_num(g_iCvarTouches)
-	}
+	return HAM_SUPERCEDE + 1
 }

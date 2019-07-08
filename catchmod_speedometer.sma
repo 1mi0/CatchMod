@@ -4,12 +4,15 @@
 
 new g_iTaskEnt
 new bool:g_bSpeedOn[33]
+new g_iHudID
 
 public plugin_init()
 {
 	register_plugin("Catch Mod: Speedometer", CATCHMOD_VER, "mi0")
 
 	register_clcmd("say /speed", "cmd_speed")
+
+	g_iHudID = CreateHudSyncObj()
 
 	g_iTaskEnt = rg_create_entity("info_target")
 	set_entvar(g_iTaskEnt, var_classname, "SpeedometerEnt")
@@ -46,11 +49,11 @@ public OnEntThink()
 		iTarget = get_entvar(i, var_iuser1) == 4 ? get_entvar(i, var_iuser1) : i
 		get_entvar(iTarget, var_velocity, fVelocity)
 
-		fSpeed = vector_length(velocity)
+		fSpeed = vector_length(fVelocity)
 		f2dmSpeed = floatsqroot(fVelocity[0] * fVelocity[0] + fVelocity[1] * fVelocity[1])
 		
-		set_hudmessage(r, g, b, -1.0, 0.7, 0, 0.0, FREQ, 0.01, 0.0)
-		ShowSyncHudMsg(i, SyncHud, "%3.2f units/second^n%3.2f velocity", fSpeed, f2dmSpeed)
+		set_hudmessage(255, 255, 255, -1.0, 0.7, 0, 0.0, 0.2, 0.01, 0.0)
+		ShowSyncHudMsg(i, g_iHudID, "%3.2f units/second^n%3.2f velocity", fSpeed, f2dmSpeed)
 	}
 
 	set_entvar(g_iTaskEnt, var_nextthink, get_gametime() + 0.1)

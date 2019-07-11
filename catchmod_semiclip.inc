@@ -87,7 +87,7 @@ public FM__AddToFullPack(es, e, ent, host, hostflags, player, pSet)
 		static Float:flDistance
 		flDistance = entity_range(host, ent)
 		
-		if (g_bSolid[host] && g_bSolid[ent] && g_iTeam[host] == g_iTeam[ent] && flDistance < SEMICLIP_DISTANCE)
+		if (g_bSolid[host] && g_bSolid[ent] && g_iTeam[host] == g_iTeam[ent] && flDistance < SEMICLIP_DISTANCE && is_user_alive(ent))
 		{
 			set_es(es, ES_Solid, SOLID_NOT)
 			set_es(es, ES_RenderMode, kRenderTransAlpha)

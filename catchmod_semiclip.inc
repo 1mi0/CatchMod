@@ -82,8 +82,6 @@ public FM__AddToFullPack(es, e, ent, host, hostflags, player, pSet)
 {
 	if (player)
 	{
-		#if defined BOOST
-
 		static Float:flDistance
 		flDistance = entity_range(host, ent)
 		

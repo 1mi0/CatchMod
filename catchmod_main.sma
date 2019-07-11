@@ -1,11 +1,14 @@
+// Defaults
 #include <amxmodx>
 #include <amxmisc>
+
+// Modules
 #include <hamsandwich>
 #include <reapi>
 
 enum Teams
 {
-	FLEER = 0,
+	FLEER,
 	CATCHER,
 	TRAINING,
 	NONE
@@ -89,40 +92,6 @@ public OnPlayerTouch(iToucher, iTouched)
 	return HAM_IGNORED
 }
 
-public OnPlayerResetMaxSpeed(id)
-{
-	if (is_user_alive(id))
-	{
-		set_entvar(id, var_maxspeed, get_pcvar_float(g_iCvarSpeed))
-		set_entvar(id, var_viewmodel, "models/v_shoots.mdl")
-	}
-}
-
-public ReapiSupercedeHandler()
-{
-	return HC_SUPERCEDE
-}
-
-public HamSupercedeHandler()
-{
-	return HAM_SUPERCEDE
-}
-
-public OnTakeDamage()
-{
-	SetHookChainArg(4, ATYPE_FLOAT, 0.0)
-}
-
-public OnPlayerSpawn(id)
-{
-	new iTeam = get_member(id, m_iTeam)
-
-	if (1 <= iTeam <= 2)
-	{
-		rg_give_item(id, "weapon_knife")
-	}
-}
-
 public TextMsgHook()
 {
 	static szMsg[32]
@@ -161,23 +130,12 @@ public TextMsgHook()
 				set_entvar(iTarget, var_frags, get_entvar(iTarget, var_frags) + 3.0)
 			}
 
-			client_print(0, print_chat, "Fleers won the round")
+			client_print(0, print_center, "Fleers won the round")
 		}
 		else
 		{
 			g_iLastWinner = iTemp == 1 ? 2 : 1
-			client_print(0, print_chat, "Catchers won the round")
-		}
-
-		if (g_iTeams[1] == FLEER)
-		{
-			g_iTeams[1] = CATCHER
-			g_iTeams[2] = FLEER
-		}
-		else
-		{
-			g_iTeams[1] = FLEER
-			g_iTeams[2] = CATCHER
+			client_print(0, print_center, "Catchers won the round")
 		}
 	}
 
@@ -200,4 +158,43 @@ public OnRoundEnd()
 	}
 
 	g_iLastWinner = 0
+
+	return HC_SUPERCEDE
+}
+
+// Restrictions, models and physics
+public OnPlayerResetMaxSpeed(id)
+{
+	if (is_user_alive(id))
+	{
+		set_entvar(id, var_maxspeed, get_pcvar_float(g_iCvarSpeed))
+		set_entvar(id, var_viewmodel, "models/v_shoots.mdl")
+	}
+}
+
+public OnTakeDamage()
+{
+	SetHookChainArg(4, ATYPE_FLOAT, 0.0)
+}
+
+
+public OnPlayerSpawn(id)
+{
+	new iTeam = get_member(id, m_iTeam)
+
+	if (1 <= iTeam <= 2)
+	{
+		rg_give_item(id, "weapon_knife")
+	}
+}
+
+// Stopping some functions
+public ReapiSupercedeHandler()
+{
+	return HC_SUPERCEDE
+}
+
+public HamSupercedeHandler()
+{
+	return HAM_SUPERCEDE
 }

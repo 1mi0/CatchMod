@@ -39,10 +39,10 @@ public OnPlayerJump(id)
 		get_entvar(id, var_velocity, g_fVel[id])
 		g_fVel[id][2] = 250.0
 		set_entvar(id, var_velocity, g_fVel[id])
+		set_entvar(id, var_gaitsequence, 6)
+		set_entvar(id, var_frame, 0.0)
 		g_fVel[id][2] = 300.0
 	}
-
-	return HC_SUPERCEDE
 }
 
 public OnPlayerThink(id)
@@ -66,6 +66,8 @@ public OnPlayerThink(id)
 	{
 		g_fVel[id][0] = 0.0 - g_fVel[id][0]
 		set_entvar(id, var_velocity, g_fVel[id])
+		set_entvar(id, var_gaitsequence, 6)
+		set_entvar(id, var_frame, 0.0)
 
 		g_ePlayerData[id][WallTouches]++
 		g_ePlayerData[id][Jump] = false

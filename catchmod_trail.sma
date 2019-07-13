@@ -3,6 +3,14 @@
 #include <cromchat>
 #include <catch_const>
 
+enum Sections
+{
+	SectionNone = 0,
+	SectionTypes,
+	SectionColors,
+	SectionSettings
+}
+
 enum _:ColorsData
 {
 	Name[32],
@@ -25,7 +33,7 @@ enum _:UserSettings
 	TrailColorID,
 	TrailColors[3],
 	bool:CustomColorOn,
-	TrailType
+	TrailType,
 }
 
 enum _:TrailsSettings
@@ -40,7 +48,10 @@ new Array:g_aTypesArray
 new g_iColorCount
 new g_iTypeCount
 new g_eTrailsSettings[TrailsSettings]
+
 new g_eUserSettings[33][UserSettings]
+new g_iUserOrigin[33][3]
+new bool:g_bPosStopped[33]
 
 new g_iColorsMenu
 new g_iTypesMenu
@@ -51,22 +62,15 @@ public plugin_init()
 
 	register_clcmd("say /trails", "cmd_trails")
 	register_clcmd("CT_CUSTOM_COLOR", "cmd_custom_color")
-
-	register_message(99, "OnBeamKill")
-}
-
-public plugin_cfg()
-{
-	g_aColorsArray = ArrayCreate(ColorsData)
-	LoadSettings()
-	LoadColors()
-	MakeColorsMenu()
 }
 
 public plugin_precache()
 {
 	g_aTypesArray = ArrayCreate(TrailTypeData)
-	LoadTypes()
+	g_aColorsArray = ArrayCreate(ColorsData)
+
+	LoadFile()
+	MakeColorsMenu()
 	MakeTypesMenu()
 }
 
@@ -76,7 +80,7 @@ public plugin_end()
 	ArrayDestroy(g_aTypesArray)
 }
 
-LoadSettings()
+LoadFile()
 {
 	new szFileDir[128]
 	get_configsdir(szFileDir, charsmax(szFileDir))
@@ -85,113 +89,101 @@ LoadSettings()
 	new iFile = fopen(szFileDir, "rt")
 	if (iFile)
 	{
-		new szLine[256], szKey[32], szValue[32]
+		new szLine[256], Sections:iSection = SectionNone
+		new szKey[32], szValue[32]
+		new szParsedColor[3][4]
+		new eTempColorArray[ColorsData], eTempTypeArray[TrailTypeData]
 
 		while (!feof(iFile))
 		{
 			fgets(iFile, szLine, charsmax(szLine))
+			trim(szLine)
 
-			if (szLine[0] == EOS || szLine[0] == '#' || szLine[0] == ';' || (szLine[0] == '/' && szLine[1] == '/'))
+			if (!szLine[0] || szLine[0] == '#' || szLine[0] == ';' || (szLine[0] == '/' && szLine[1] == '/'))
 			{
 				continue
 			}
 
-			strtok(szLine, szKey, charsmax(szKey), szValue, charsmax(szValue), '=')
-			trim(szKey)
-			trim(szValue)
-
-			if (equali(szKey, "ADMIN_FLAGS"))
+			if (szLine[0] == '[')
 			{
-				g_eTrailsSettings[AdminFlags] = read_flags(szValue)
-			}
-			else if (equali(szKey, "TRAIL_LIFE"))
-			{
-				g_eTrailsSettings[TrailLife] = abs(str_to_num(szValue))
-			}
-			else if (equali(szKey, "ADMIN_CUSTOM_COLOR"))
-			{
-				g_eTrailsSettings[CustomColorFlags] = read_flags(szValue)
-			}
-			else if (equali((szKey), "CHAT_PREFIX"))
-			{
-				if (szValue[0] != EOS)
+				switch (szLine[1])
 				{
-					CC_SetPrefix(szValue)
+					case 'T':
+					{
+						iSection = SectionTypes
+					}
+
+					case 'C':
+					{
+						iSection = SectionColors
+					}
+
+					case 'S':
+					{
+						iSection = SectionSettings
+					}
+
+					default:
+					{
+						iSection = SectionNone
+					}
+				}
+			}
+
+			switch (iSection)
+			{
+				case SectionTypes:
+				{
+					parse(szLine, eTempTypeArray[Name], charsmax(eTempTypeArray[Name]), eTempTypeArray[TypeSprite], charsmax(eTempTypeArray[TypeSprite]), szKey, charsmax(szKey), szValue, charsmax(szValue))
+					eTempTypeArray[TypeSpriteID] = precache_model(eTempTypeArray[TypeSprite])
+					eTempTypeArray[TypeSize] = abs(str_to_num(szKey))
+					eTempTypeArray[TypeBrightness] = clamp(str_to_num(szValue), 0, 255)
+
+					ArrayPushArray(g_aTypesArray, eTempTypeArray)
+					g_iTypeCount++
+				}
+
+				case SectionColors:
+				{
+					parse(szLine, eTempColorArray[Name], charsmax(eTempColorArray[Name]), szKey, charsmax(szKey))
+					parse(szKey, szParsedColor[0], charsmax(szParsedColor[]), szParsedColor[1], charsmax(szParsedColor[]), szParsedColor[2], charsmax(szParsedColor[]))
+					eTempColorArray[Color][0] = clamp(str_to_num(szParsedColor[0]), 0, 255)
+					eTempColorArray[Color][1] = clamp(str_to_num(szParsedColor[1]), 0, 255)
+					eTempColorArray[Color][2] = clamp(str_to_num(szParsedColor[2]), 0, 255)
+
+					ArrayPushArray(g_aColorsArray, eTempColorArray)
+					g_iColorCount++
+				}
+
+				case SectionSettings:
+				{
+					strtok(szLine, szKey, charsmax(szKey), szValue, charsmax(szValue), '=')
+					trim(szKey)
+					trim(szValue)
+
+					if (equali(szKey, "ADMIN_FLAGS"))
+					{
+						g_eTrailsSettings[AdminFlags] = read_flags(szValue)
+					}
+					else if (equali(szKey, "TRAIL_LIFE"))
+					{
+						g_eTrailsSettings[TrailLife] = abs(str_to_num(szValue))
+					}
+					else if (equali(szKey, "ADMIN_CUSTOM_COLOR"))
+					{
+						g_eTrailsSettings[CustomColorFlags] = read_flags(szValue)
+					}
+					else if (equali((szKey), "CHAT_PREFIX"))
+					{
+						if (szValue[0] != EOS)
+						{
+							CC_SetPrefix(szValue)
+						}
+					}
 				}
 			}
 		}
 	}
-}
-
-LoadColors()
-{
-	new szFileDir[128]
-	get_configsdir(szFileDir, charsmax(szFileDir))
-	add(szFileDir, charsmax(szFileDir), "/TrailsColors.ini")
-
-	new iFile = fopen(szFileDir, "rt")
-	if (iFile)
-	{
-		new szLine[256], szFullColor[16], szParsedColor[3][4], eTempArray[ColorsData]
-
-		while (!feof(iFile))
-		{
-			fgets(iFile, szLine, charsmax(szLine))
-
-			if (szLine[0] == EOS || szLine[0] == '#' || szLine[0] == ';' || (szLine[0] == '/' && szLine[1] == '/'))
-			{
-				continue
-			}
-			else
-			{
-				parse(szLine, eTempArray[Name], charsmax(eTempArray[Name]), szFullColor, charsmax(szFullColor))
-				parse(szFullColor, szParsedColor[0], charsmax(szParsedColor[]), szParsedColor[1], charsmax(szParsedColor[]), szParsedColor[2], charsmax(szParsedColor[]))
-				eTempArray[Color][0] = clamp(str_to_num(szParsedColor[0]), 0, 255)
-				eTempArray[Color][1] = clamp(str_to_num(szParsedColor[1]), 0, 255)
-				eTempArray[Color][2] = clamp(str_to_num(szParsedColor[2]), 0, 255)
-
-				ArrayPushArray(g_aColorsArray, eTempArray)
-				g_iColorCount++
-			}
-		}
-	}
-
-	server_print("[Colorful Trails] Loaded colors: %i", g_iColorCount)
-}
-
-LoadTypes()
-{
-	new szFileDir[128]
-	get_configsdir(szFileDir, charsmax(szFileDir))
-	add(szFileDir, charsmax(szFileDir), "/TrailsTypes.ini")
-
-	new iFile = fopen(szFileDir, "rt")
-	if (iFile)
-	{
-		new szLine[256], szSize[8], szBrightness[8], eTempArray[TrailTypeData]
-
-		while (!feof(iFile))
-		{
-			fgets(iFile, szLine, charsmax(szLine))
-
-			if (szLine[0] == EOS || szLine[0] == '#' || szLine[0] == ';' || (szLine[0] == '/' && szLine[1] == '/'))
-			{
-				continue
-			}
-			else
-			{
-				parse(szLine, eTempArray[Name], charsmax(eTempArray[Name]), eTempArray[TypeSprite], charsmax(eTempArray[TypeSprite]), szSize, charsmax(szSize), szBrightness, charsmax(szBrightness))
-				eTempArray[TypeSpriteID] = precache_model(eTempArray[TypeSprite])
-				eTempArray[TypeSize] = abs(str_to_num(szSize))
-				eTempArray[TypeBrightness] = clamp(str_to_num(szBrightness), 0, 255)
-
-				ArrayPushArray(g_aTypesArray, eTempArray)
-				g_iTypeCount++
-			}
-		}
-	}
-
-	server_print("[Colorful Trails] Loaded types: %i", g_iTypeCount)
 }
 
 OpenTrailMenu(id)
@@ -367,7 +359,7 @@ public TypesMenu_Handler(id, iMenu, iItem)
 StartUserTrail(id)
 {
 	UpdateUserTrail(id)
-	set_task_ex(10.0, "UpdateUserTrail", id, .flags = SetTask_Repeat)
+	set_task(10.0, "UpdateUserTrail", id, .flags = "b")
 	g_eUserSettings[id][TrailOn] = true
 }
 
@@ -389,7 +381,7 @@ public UpdateUserTrail(id)
 	ArrayGetArray(g_aTypesArray, g_eUserSettings[id][TrailType], eTempArray)
 
 	message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-	write_byte(22)
+	write_byte(TE_BEAMFOLLOW)
 	write_short(id)
 	write_short(eTempArray[TypeSpriteID])
 	write_byte(g_eTrailsSettings[TrailLife] * 10)
@@ -404,7 +396,7 @@ public UpdateUserTrail(id)
 KillUserTrail(id)
 {
 	message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-	write_byte(99)
+	write_byte(TE_KILLBEAM)
 	write_short(id)
 	message_end()
 }
@@ -464,12 +456,4 @@ public cmd_custom_color(id)
 	OpenTrailMenu(id)
 
 	return PLUGIN_HANDLED
-}
-
-public OnBeamKill(iMsg, iDest, id)
-{
-	if (g_eUserSettings[id][TrailOn])
-	{
-		UpdateUserTrail(id)
-	}
 }

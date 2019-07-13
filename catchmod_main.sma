@@ -6,35 +6,50 @@
 #include <hamsandwich>
 #include <reapi>
 
-enum Teams
-{
-	FLEER,
-	CATCHER,
-	TRAINING,
-	NONE
-}
+// 3rd part
+#include <catch_const>
 
-new g_iCvarSpeed
+new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed
 new bool:g_bTrainingOn
 new Teams:g_iTeams[5]
+new Teams:g_iPlayerTeams[33]
 new g_iLastWinner
+new g_iPlayerStats[33][2]
+new g_iHudEnt, g_iSyncHud
+new bool:g_bCanKill
+new g_iTurbo[33]
+new bool:g_bTurboOn[33]
+new Float:g_fPlayerSpeed[33]
 
 public plugin_init()
 {
 	register_plugin("Catch Mod: Main", "4.0", "mi0")
 
 	g_iCvarSpeed = register_cvar("catch_speed", "640.0")
+	g_iCvarTurbo = register_cvar("catch_turbo", "30")
+	g_iCvarTurboSpeed = register_cvar("catch_turbo_speed", "840.0")
 
-	new iGravityPointer = get_cvar_pointer("sv_gravity")
-	set_pcvar_num(iGravityPointer, 600)
+	new iTempPointer
+	iTempPointer = get_cvar_pointer("sv_gravity")
+	set_pcvar_num(iTempPointer, 600)
+	iTempPointer = get_cvar_pointer("sv_airaccelerate")
+	set_pcvar_num(iTempPointer, 100)
 
 	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "OnPlayerResetMaxSpeed", 1)
 	RegisterHookChain(RG_CBasePlayer_TakeDamage, "OnTakeDamage")
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn", 1)
-	RegisterHookChain(RG_RoundEnd, "OnRoundEnd")
+	RegisterHookChain(RG_RoundEnd, "OnRoundEnd", 1)
+	RegisterHookChain(RG_CSGameRules_RestartRound, "OnNewRound", 1)
 	RegisterHam(Ham_Touch, "player", "OnPlayerTouch")
+	RegisterHam(Ham_Player_PreThink, "player", "OnPlayerThink")
 	register_message(get_user_msgid("TextMsg"), "TextMsgHook")
+	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
 
+	g_iSyncHud = CreateHudSyncObj()
+	g_iHudEnt = rg_create_entity("info_target")
+	set_entvar(g_iHudEnt, var_classname, "HudEnt")
+	set_entvar(g_iHudEnt, var_nextthink, get_gametime() + 1.0)
+	SetThink(g_iHudEnt, "HudEntThinking")
 
 	// SUPERCEDE
 	RegisterHam(Ham_Spawn, "hostage_entity", "HamSupercedeHandler")
@@ -60,16 +75,38 @@ public plugin_precache()
 	precache_model("models/v_shoots.mdl")
 }
 
+public client_putinserver(id)
+{
+	g_iPlayerStats[id][0] = 0
+	g_iPlayerStats[id][1] = 0
+	set_task(0.5, "UpdateStats", id)
+}
+
+public OnPlayerThink(id)
+{
+	static iButtons, iOldButtons
+	iButtons = get_entvar(id, var_button)
+	iOldButtons = get_entvar(id, var_oldbuttons)
+
+	if (iButtons & IN_ATTACK2 && ~iOldButtons & IN_ATTACK2)
+	{
+		TurboOn(id)
+	}
+	else if (~iButtons & IN_ATTACK2 && iOldButtons & IN_ATTACK2)
+	{
+		TurboOff(id + 2000)
+	}
+}
 
 public OnPlayerTouch(iToucher, iTouched)
 {
-	if (!is_user_connected(iTouched) || g_bTrainingOn)
+	if (!is_user_alive(iTouched) || !is_user_alive(iToucher) || g_bTrainingOn || !g_bCanKill)
 	{
 		return HAM_IGNORED
 	}
 	
 	new iKiller, iVictim
-	switch (g_iTeams[get_member(iToucher, m_iTeam)])
+	switch (g_iPlayerTeams[iToucher])
 	{
 		case CATCHER:
 		{
@@ -86,21 +123,35 @@ public OnPlayerTouch(iToucher, iTouched)
 	user_silentkill(iVictim)
 	make_deathmsg(iKiller, iVictim, 1, "weapon_knife")
 
-	set_entvar(iKiller, var_frags, get_entvar(iKiller, var_frags) + 1.0)
-	set_member(iVictim, m_iDeaths, get_member(iVictim, m_iDeaths) + 1)
+	g_iPlayerStats[iKiller][0]++
+	g_iPlayerStats[iVictim][1]++
+	UpdateStats(iKiller)
+	UpdateStats(iVictim)
 
 	return HAM_IGNORED
 }
 
-public TextMsgHook()
+public TextMsgHook(iMsgID, iMsgDest, id)
 {
 	static szMsg[32]
 	get_msg_arg_string(2, szMsg, charsmax(szMsg))
 
 	if (equal(szMsg, "#Game_Commencing"))
 	{
-		g_iTeams[1] = FLEER
-		g_iTeams[2] = CATCHER
+		g_iTeams[1] = CATCHER
+		g_iTeams[2] = FLEER
+		UpdateHud(id)
+
+		new iPlayers[32], iPlayersNum
+		get_players_ex(iPlayers, iPlayersNum)
+		for (new i, iTarget; i < iPlayersNum; i++)
+		{
+			iTarget = iPlayers[i]
+
+			g_iPlayerStats[iTarget][0] = 0
+			g_iPlayerStats[iTarget][1] = 0
+			UpdateStats(iTarget)
+		}
 
 		return PLUGIN_CONTINUE 
 	}
@@ -127,39 +178,175 @@ public TextMsgHook()
 			for (new i, iTarget; i < iPlayersNum; i++)
 			{
 				iTarget = iPlayers[i]
-				set_entvar(iTarget, var_frags, get_entvar(iTarget, var_frags) + 3.0)
+				g_iPlayerStats[iTarget][0] += 3
+				UpdateStats(iTarget)
 			}
 
-			client_print(0, print_center, "Fleers won the round")
+			client_print(0, print_center, "Fleers won the round!")
 		}
 		else
 		{
 			g_iLastWinner = iTemp == 1 ? 2 : 1
-			client_print(0, print_center, "Catchers won the round")
+			client_print(0, print_center, "Catchers won the round!")
 		}
+
+		g_bCanKill = false
 	}
 
-	return PLUGIN_CONTINUE
+	return PLUGIN_HANDLED
 }
 
 public OnRoundEnd()
 {
 	if (g_iLastWinner == 1)
 	{
-		SetHookChainArg(0, ATYPE_INTEGER, WINSTATUS_TERRORISTS)
+		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_TERRORISTS)
 	}
 	else if (g_iLastWinner == 2)
 	{
-		SetHookChainArg(0, ATYPE_INTEGER, WINSTATUS_CTS)
+		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_CTS)
 	}
 	else
 	{
-		SetHookChainArg(0, ATYPE_INTEGER, WINSTATUS_DRAW)
+		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_DRAW)
+	}
+
+	if (g_iTeams[1] == FLEER)
+	{
+		g_iTeams[1] = CATCHER
+		g_iTeams[2] = FLEER
+	}
+	else
+	{
+		g_iTeams[1] = FLEER
+		g_iTeams[2] = CATCHER
 	}
 
 	g_iLastWinner = 0
+}
 
-	return HC_SUPERCEDE
+public OnNewRound()
+{
+	g_bCanKill = true
+}
+
+//Hud
+public HudEntThinking()
+{
+	new iPlayers[32], iPlayersNum
+	get_players_ex(iPlayers, iPlayersNum)
+
+	for (new i; i < iPlayersNum; i++)
+	{
+		UpdateHud(iPlayers[i])
+	}
+
+	set_entvar(g_iHudEnt, var_nextthink, get_gametime() + 5.0)
+}
+
+UpdateHud(id)
+{
+	if (!is_user_alive(id))
+	{
+		return
+	}
+
+	new szTemp[192]
+	switch (g_iPlayerTeams[id])
+	{
+		case FLEER:
+		{
+			formatex(szTemp, charsmax(szTemp), "Status : Fleer")
+		}
+		case CATCHER:
+		{
+			formatex(szTemp, charsmax(szTemp), "Status : Catcher")
+		}
+		case TRAINING:
+		{
+			formatex(szTemp, charsmax(szTemp), "Status : Training")
+		}
+		default:
+		{
+			formatex(szTemp, charsmax(szTemp), "Status : None")
+		}
+	}
+
+	if (g_iTurbo[id] >= 10)
+	{
+		format(szTemp, charsmax(szTemp), "%s^n%sTurbo: [======|======] %i%", szTemp, g_bTurboOn[id] ? "+" : "-", g_iTurbo[id])
+	}
+	else if (g_iTurbo[id] < 10 && g_iTurbo[id] >= 0)
+	{
+		format(szTemp, charsmax(szTemp), "%s^nTurbo: Out of fuel", szTemp)
+	}
+	else
+	{
+		format(szTemp, charsmax(szTemp), "%s^nTurbo: Off", szTemp)
+	}
+
+	set_hudmessage(255, 255, 255, 0.02, 0.24, 0, 0.0, 5.0, 0.2, 0.0)
+	ShowSyncHudMsg(id, g_iSyncHud, szTemp)
+}
+
+// Stats
+public ScoreInfoChanged(iMsgId, iMsgDest, id)
+{	
+	return PLUGIN_HANDLED
+}
+
+public UpdateStats(id)
+{
+	message_begin(MSG_ALL, get_user_msgid("ScoreInfo"))
+	write_byte(id)
+	write_short(g_iPlayerStats[id][0])
+	write_short(g_iPlayerStats[id][1])
+	write_short(0)
+	write_short(get_member(id, m_iTeam))
+	message_end()
+}
+
+// Turbo
+TurboOn(id)
+{
+	if (g_iTurbo[id] < 10)
+	{
+		return
+	}
+
+	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarTurboSpeed)
+	set_entvar(id, var_maxspeed, g_fPlayerSpeed[id])
+	g_iTurbo[id] -= 10
+	g_bTurboOn[id] = true
+	UpdateHud(id)
+
+	set_task(0.9, "TurboOff", id + 2000)
+}
+
+public TurboOff(id)
+{
+	if (task_exists(id))
+	{
+		remove_task(id)
+	}
+
+	id -= 2000
+
+	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarSpeed)
+	set_entvar(id, var_maxspeed, g_fPlayerSpeed[id])
+	g_bTurboOn[id] = false
+	UpdateHud(id)
+}
+
+// Natives
+public plugin_natives()
+{
+	register_native("catch_get_user_team", "_native_get_user_team")
+}
+
+public Teams:_native_get_team()
+{
+	return g_iPlayerTeams[get_param(1)]
 }
 
 // Restrictions, models and physics
@@ -177,15 +364,41 @@ public OnTakeDamage()
 	SetHookChainArg(4, ATYPE_FLOAT, 0.0)
 }
 
-
 public OnPlayerSpawn(id)
 {
 	new iTeam = get_member(id, m_iTeam)
+
+	g_iPlayerTeams[id] = g_iTeams[iTeam]
 
 	if (1 <= iTeam <= 2)
 	{
 		rg_give_item(id, "weapon_knife")
 	}
+
+	set_entvar(id, var_renderfx, kRenderFxGlowShell)
+
+	if (g_iPlayerTeams[id] == FLEER)
+	{
+		g_iTurbo[id] = get_pcvar_num(g_iCvarTurbo)
+
+		set_entvar(id, var_rendercolor, {0.0, 255.0, 0.0})
+	}
+	else if (g_iPlayerTeams[id] == CATCHER)
+	{
+		g_iTurbo[id] = -1
+
+		set_entvar(id, var_rendercolor, {255.0, 0.0, 0.0})
+	}
+	else
+	{
+		set_entvar(id, var_rendercolor, {0.0, 0.0, 255.0})
+	}
+
+	set_entvar(id, var_renderamt, 25.0)
+
+	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarSpeed)
+
+	UpdateHud(id)
 }
 
 // Stopping some functions

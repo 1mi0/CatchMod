@@ -1,6 +1,6 @@
 #include <amxmodx>
 #include <reapi>
-#include <catch_const>
+#include <catchmod>
 
 new g_iTaskEnt
 new bool:g_bSpeedOn[33]

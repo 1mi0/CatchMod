@@ -113,7 +113,7 @@ LoadFile()
 			fgets(iFile, szLine, charsmax(szLine))
 			trim(szLine)
 
-			if (!szLine[0] || szLine[0] == '#' || szLine[0] == ';' || (szLine[0] == '/' && szLine[1] == '/'))
+			if (szLine[0] == EOS || szLine[0] == '#' || szLine[0] == ';' || (szLine[0] == '/' && szLine[1] == '/'))
 			{
 				continue
 			}
@@ -142,6 +142,8 @@ LoadFile()
 						iSection = SectionNone
 					}
 				}
+
+				continue
 			}
 
 			switch (iSection)

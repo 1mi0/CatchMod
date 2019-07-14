@@ -54,7 +54,6 @@ public plugin_init()
 	register_touch("player", "worldspawn", "OnPlayerTouchWorld")
 	register_touch("player", "func_breakable", "OnPlayerTouchWorld")
 	register_touch("player", "player", "OnPlayerTouchPlayer")
-	RegisterHam(Ham_Touch, "player", "OnPlayerTouch")
 	RegisterHam(Ham_Player_PreThink, "player", "OnPlayerThink")
 	register_message(get_user_msgid("TextMsg"), "TextMsgHook")
 	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
@@ -415,7 +414,7 @@ public plugin_natives()
 	register_native("catch_get_user_team", "_native_get_user_team")
 }
 
-public Teams:_native_get_team()
+public Teams:_native_get_user_team()
 {
 	return g_iPlayerTeams[get_param(1)]
 }

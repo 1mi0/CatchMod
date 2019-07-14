@@ -1,0 +1,616 @@
+{
+	"auto_complete":
+	{
+		"selected_items":
+		[
+			[
+				"g_e",
+				"g_eTrailsSettings\t catchmod_trail.sma - var "
+			],
+			[
+				"Color",
+				"TrailColors[3]\t catchmod_trail.sma - enum "
+			],
+			[
+				"Trai",
+				"TrailLite\t catchmod_trail.sma - enum "
+			],
+			[
+				"g_iCvar",
+				"g_iCvarTouches"
+			],
+			[
+				"iPla",
+				"iPlayersNum"
+			],
+			[
+				"Type",
+				"TrailTypeData"
+			],
+			[
+				"Section",
+				"SectionSettings"
+			],
+			[
+				"pre",
+				"precache_sound"
+			],
+			[
+				"Sec",
+				"SectionSettings"
+			],
+			[
+				"Sect",
+				"SectionGoldens"
+			],
+			[
+				"g_iCv",
+				"g_iCvarSpeed"
+			],
+			[
+				"g_itur",
+				"g_iCvarTurboSpeed"
+			],
+			[
+				"g_i",
+				"g_iCvarSpeed"
+			],
+			[
+				"get_pc",
+				"get_pcvar_float"
+			],
+			[
+				"g_iT",
+				"g_iTurbo"
+			],
+			[
+				"g_b",
+				"g_bTurboOn"
+			],
+			[
+				"iPlayer",
+				"g_iPlayerTeams"
+			],
+			[
+				"g_iCva",
+				"g_iCvarTurbo"
+			],
+			[
+				"iTo",
+				"iToucher"
+			],
+			[
+				"g_iHUD",
+				"g_iSyncHud"
+			],
+			[
+				"g_iHud",
+				"g_iHudPosX"
+			],
+			[
+				"Ipla",
+				"iPlayersNum"
+			],
+			[
+				"iPlayers",
+				"iPlayers"
+			],
+			[
+				"Hud",
+				"HudEntThinking"
+			],
+			[
+				"iPlay",
+				"iPlayers"
+			],
+			[
+				"HAM_",
+				"HAM_IGNORED"
+			],
+			[
+				"Register",
+				"RegisterHam"
+			],
+			[
+				"iTou",
+				"iTouched"
+			],
+			[
+				"Regise",
+				"RegisterHookChain"
+			],
+			[
+				"g_",
+				"g_ePlayerData"
+			],
+			[
+				"get",
+				"get_pcvar_num"
+			],
+			[
+				"get_",
+				"get_entvar"
+			],
+			[
+				"OnPla",
+				"OnPlayerThink"
+			],
+			[
+				"On",
+				"OnPlayerThink"
+			],
+			[
+				"OnPl",
+				"OnPlayerJump"
+			],
+			[
+				"FM",
+				"FMRES_IGNORED"
+			],
+			[
+				"OnPlae",
+				"OnPlayerThink"
+			],
+			[
+				"Trail",
+				"TrailOn"
+			],
+			[
+				"iT",
+				"iTouchedTeam"
+			],
+			[
+				"Wall",
+				"WallTouches"
+			],
+			[
+				"sz",
+				"szVictimMsg"
+			],
+			[
+				"A",
+				"AttackPlaces"
+			],
+			[
+				"At",
+				"AttackPlaces"
+			],
+			[
+				"i",
+				"iAttacker"
+			],
+			[
+				"attack",
+				"AttackPlaces"
+			],
+			[
+				"Hit",
+				"UsersHit"
+			],
+			[
+				"FADE",
+				"FADEOUT"
+			],
+			[
+				"fl",
+				"flDamage"
+			],
+			[
+				"U",
+				"UsersHit"
+			],
+			[
+				"ITEM",
+				"ITEM_DISABLED"
+			],
+			[
+				"eTe",
+				"eTempArray"
+			],
+			[
+				"Cus",
+				"CustomColorOn"
+			],
+			[
+				"for",
+				"formatex"
+			],
+			[
+				"TrailColo",
+				"TrailColors"
+			],
+			[
+				"Custom",
+				"CustomColorOn"
+			],
+			[
+				"Name",
+				"TypeName"
+			],
+			[
+				"Pre",
+				"ChatPrefix"
+			],
+			[
+				"Size",
+				"TypeSize"
+			],
+			[
+				"Sprit",
+				"TypeSpriteID"
+			],
+			[
+				"g_a",
+				"g_aTypesArray"
+			],
+			[
+				"Array",
+				"ArrayGetArray"
+			],
+			[
+				"str",
+				"str_to_num"
+			],
+			[
+				"Trails",
+				"TrailsSettings"
+			],
+			[
+				"Ty",
+				"TypeBrightness"
+			],
+			[
+				"TrailTy",
+				"TrailTypeData"
+			],
+			[
+				"Arra",
+				"ArrayCreate"
+			],
+			[
+				"Tra",
+				"TrailTypeData"
+			],
+			[
+				"f",
+				"fRadius"
+			],
+			[
+				"Rank",
+				"RankType"
+			],
+			[
+				"SQL_",
+				"SQL_NumResults"
+			],
+			[
+				"csys",
+				"csys_get_user_svdata"
+			],
+			[
+				"Che",
+				"CheckLogged"
+			],
+			[
+				"regi",
+				"register_native"
+			],
+			[
+				"iP",
+				"iPlayersNum"
+			],
+			[
+				"get_pla",
+				"get_players"
+			],
+			[
+				"iRank",
+				"iRankType"
+			],
+			[
+				"Ra",
+				"RankInfo"
+			],
+			[
+				"SQL",
+				"SQL_FreeHandle"
+			]
+		]
+	},
+	"buffers":
+	[
+	],
+	"build_system": "",
+	"build_system_choices":
+	[
+	],
+	"build_varint": "",
+	"command_palette":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+			[
+				"package",
+				"Package Control: Install Package"
+			],
+			[
+				"pack",
+				"Package Control: Remove Package"
+			],
+			[
+				"packa",
+				"Install Package Control"
+			]
+		],
+		"width": 0.0
+	},
+	"console":
+	{
+		"height": 0.0,
+		"history":
+		[
+		]
+	},
+	"distraction_free":
+	{
+		"menu_visible": true,
+		"show_minimap": false,
+		"show_open_files": false,
+		"show_tabs": false,
+		"side_bar_visible": false,
+		"status_bar_visible": false
+	},
+	"file_history":
+	[
+		"/C/Users/ramu5/AppData/Roaming/Sublime Text 3/Packages/amxmodx/AMXX-Editor.sublime-settings",
+		"/C/Users/ramu5/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_trail.sma",
+		"/C/Users/ramu5/AppData/Roaming/Sublime Text 3/Packages/User/AMXX-Editor.sublime-settings",
+		"/C/Users/ramu5/Desktop/vip.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa14444.40426/colorfultrails.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa12916.42997/colorfultrails.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/MyPlugins/Utils/Semiclip.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/MyPlugins/HideNSeek_Core.sma",
+		"/C/Users/ramu5/Downloads/Trails 1.0/colorfultrails.sma",
+		"/C/Users/ramu5/Desktop/ /Visual Studio/Strike-Counter 6.1 Matchmaking/game.cpp",
+		"/C/Users/ramu5/Desktop/ /Visual Studio/Strike-Counter 6.1 Matchmaking/platsrc/platsrc.h",
+		"/C/Users/ramu5/Downloads/info_zone.sma",
+		"/C/Users/ramu5/Downloads/info_zone_de_train.ini",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/catchmod_main.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/catchmod_trail.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/catchmod_speedometer.sma",
+		"/C/Users/ramu5/AppData/Roaming/Sublime Text 3/Packages/User/AMXX-Pawn.sublime-syntax",
+		"/C/Users/ramu5/AppData/Roaming/Sublime Text 3/Packages/amxmodx/default.inc",
+		"/C/Users/ramu5/AppData/Roaming/Sublime Text 3/Packages/amxmodx/default.sma",
+		"/C/Users/ramu5/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_main.sma",
+		"/C/Users/ramu5/AppData/Roaming/Sublime Text 3/Packages/User/Package Control.sublime-settings",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/catchmod_walls.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.17111/main.cfg",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.16910/main.cfg",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.14931/reasons.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.13824/main.cfg",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.12369/console.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.10805/screen_maker.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.21077/times.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa3048.9688/lite_bans_off.sma",
+		"/C/Users/ramu5/Downloads/health.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/configs/TrailsSettings.ini",
+		"/C/Users/ramu5/Downloads/Trails 0.9/configs/TrailsColors.ini",
+		"/C/Users/ramu5/Downloads/Trails 1.0/configs/TrailsSettings.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_trail.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa16076.2252/colorfultrails.sma",
+		"/C/Users/ramu5/Downloads/Trails 0.9/colorfultrails.sma",
+		"/C/Users/ramu5/Downloads/Trails 0.9/configs/TrailsSettings.ini",
+		"/C/Users/ramu5/Downloads/colorfultrails.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CoinSystem/coinsystem.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_main.sma",
+		"/C/Users/ramu5/Downloads/asdasd.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/adminvote.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/configs/TrailsColors.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/configs/TrailsTypes.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/users.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/goldensmenu.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa12520.46147/league_death_sounds.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_semiclip.inc",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa8116.32928/superheromod.sma",
+		"/C/Users/ramu5/Downloads/glow_menu.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa8116.37934/superheromod.inc",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa13064.25333/sh_beast.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa4832.39100/amxshowfps.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/multi-golden.ini",
+		"/C/Users/ramu5/Downloads/goldensmenu.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/compiler/goldensmenu.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa11168.48877/blockmaker_4vendeta.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_walls.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/catchmod_speedometer.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/catchmod_semiclip.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/include/catchmod.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/include/catch_const.inc",
+		"/C/Users/ramu5/Downloads/goldmenu.sma",
+		"/C/Users/ramu5/Downloads/Microsoft.SkypeApp_kzf8qxf38zg5c!App/All/HideNSeek_Core (3).sma",
+		"/C/Users/ramu5/Downloads/nickprotect_whitelist.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa7012.8514/hackera457_playertrail.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa7012.9693/PlayerTrail.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa7012.9122/WPMGPrintChatColor.inc",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa15288.26239/plugins.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/game.cfg",
+		"/C/Users/ramu5/Downloads/Microsoft.SkypeApp_kzf8qxf38zg5c!App/All/HideNSeek_Core (2).sma",
+		"/C/Users/ramu5/Downloads/catch_mod_fixed.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/configs/plugins.ini",
+		"/C/Users/ramu5/Downloads/colorchat.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/configs/users.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/colorfultrails.sma",
+		"/C/Users/ramu5/Downloads/Microsoft.SkypeApp_kzf8qxf38zg5c!App/All/Semiclip.sma",
+		"/C/Users/ramu5/Downloads/giveXP.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/justtest.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/configs/TrailsTypes.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/configs/TrailsSettings.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa8916.14930/GameMessages.ini",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa2924.27965/nohostages.sma",
+		"/C/Users/ramu5/Downloads/teamalert.sma",
+		"/C/Users/ramu5/Downloads/vzbb_jetpack_veco.sma",
+		"/C/Users/ramu5/Downloads/plugin_trail (1).sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/include/message_const.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/include/amxconst.inc",
+		"/C/Users/ramu5/Downloads/Hook.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/Server/cstrike/addons/amxmodx/scripting/include/amxmodx.inc",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/MyPlugins/advbulldmg.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/include/catch_const.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/codeng.sma",
+		"/C/Users/ramu5/Downloads/speedometer (1).sma",
+		"/C/Users/ramu5/OneDrive/Desktop/speedometer.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/ /Games/Counter-Strike/compiler/coinshop_speed.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/scripting/reapi_vipextras.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CoinSystem/include/coinsys_const.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/plugins-zPosledni.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/plugins.ini",
+		"/C/Users/ramu5/OneDrive/Desktop/scripting/catchmod_trail.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/scripting/plugin_trail.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/scripting/advbulldmg.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/reapi.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/scripting/abd_smir.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/advbulldmg.sma",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/configs/TrailsColors.ini",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/configs/TrailsTypes.ini",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/configs/TrailsSettings.ini",
+		"/C/Users/ramu5/Downloads/Microsoft.SkypeApp_kzf8qxf38zg5c!App/All/abd_smir.sma",
+		"/C/Users/ramu5/Downloads/Microsoft.SkypeApp_kzf8qxf38zg5c!App/All/amx_bhop (2).sma",
+		"/C/Users/ramu5/Downloads/Microsoft.SkypeApp_kzf8qxf38zg5c!App/All/amx_bhop.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa8588.8583/crx_ranksystem.sma",
+		"/C/Users/ramu5/Downloads/speedometer.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/configs/colors.cfg",
+		"/C/Users/ramu5/OneDrive/Documents/GitHub/CatchMod/include/cromchat.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/nextmap.sma",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa6184.22876/orpheu_const.inc",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa6184.22341/orpheu_advanced.inc",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa6184.20922/orpheu.inc",
+		"/C/Users/ramu5/AppData/Local/Temp/Rar$DIa6184.26600/orpheu_memory.inc",
+		"/C/Users/ramu5/OneDrive/Desktop/remove_weapons_on_ground.sma",
+		"/C/Users/ramu5/Downloads/FallDamageHpRes.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/amxx.cfg",
+		"/C/Users/ramu5/Downloads/gag_system (1).sma",
+		"/C/Users/ramu5/Downloads/codeng.sma",
+		"/C/Users/ramu5/OneDrive/Desktop/scripting/mapchooser.sma"
+	],
+	"find":
+	{
+		"height": 26.0
+	},
+	"find_in_files":
+	{
+		"height": 0.0,
+		"where_history":
+		[
+		]
+	},
+	"find_state":
+	{
+		"case_sensitive": false,
+		"find_history":
+		[
+		],
+		"highlight": true,
+		"in_selection": false,
+		"preserve_case": false,
+		"regex": false,
+		"replace_history":
+		[
+		],
+		"reverse": false,
+		"show_context": true,
+		"use_buffer2": true,
+		"whole_word": false,
+		"wrap": true
+	},
+	"groups":
+	[
+		{
+			"sheets":
+			[
+			]
+		}
+	],
+	"incremental_find":
+	{
+		"height": 26.0
+	},
+	"input":
+	{
+		"height": 36.8
+	},
+	"layout":
+	{
+		"cells":
+		[
+			[
+				0,
+				0,
+				1,
+				1
+			]
+		],
+		"cols":
+		[
+			0.0,
+			1.0
+		],
+		"rows":
+		[
+			0.0,
+			1.0
+		]
+	},
+	"menu_visible": true,
+	"output.find_results":
+	{
+		"height": 0.0
+	},
+	"pinned_build_system": "",
+	"project": "catchmod_walls.sublime-project",
+	"replace":
+	{
+		"height": 48.0
+	},
+	"save_all_on_build": true,
+	"select_file":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_project":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"select_symbol":
+	{
+		"height": 0.0,
+		"last_filter": "",
+		"selected_items":
+		[
+		],
+		"width": 0.0
+	},
+	"selected_group": 0,
+	"settings":
+	{
+	},
+	"show_minimap": true,
+	"show_open_files": false,
+	"show_tabs": true,
+	"side_bar_visible": false,
+	"side_bar_width": 206.0,
+	"status_bar_visible": true,
+	"template_settings":
+	{
+	}
+}

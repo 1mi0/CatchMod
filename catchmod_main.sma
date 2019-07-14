@@ -5,29 +5,38 @@
 // Modules
 #include <hamsandwich>
 #include <reapi>
+#include <engine>
 
 // 3rd part
 #include <catch_const>
 
-new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed
+// Cvars
+new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed, g_iCvarTouches
+// Engine Vars
 new bool:g_bTrainingOn
 new Teams:g_iTeams[5]
-new Teams:g_iPlayerTeams[33]
 new g_iLastWinner
-new g_iPlayerStats[33][2]
 new g_iHudEnt, g_iSyncHud
 new bool:g_bCanKill
+// Player Vars
+new Teams:g_iPlayerTeams[33]
+new g_iPlayerStats[33][2]
 new g_iTurbo[33]
 new bool:g_bTurboOn[33]
 new Float:g_fPlayerSpeed[33]
+new Float:g_fVel[33][3]
+new g_iWallTouches[33]
+new bool:g_bJump[33]
 
 public plugin_init()
 {
 	register_plugin("Catch Mod: Main", "4.0", "mi0")
 
+	// Cvars
 	g_iCvarSpeed = register_cvar("catch_speed", "640.0")
 	g_iCvarTurbo = register_cvar("catch_turbo", "30")
 	g_iCvarTurboSpeed = register_cvar("catch_turbo_speed", "840.0")
+	g_iCvarTouches = register_cvar("catch_walls_touches", "3")
 
 	new iTempPointer
 	iTempPointer = get_cvar_pointer("sv_gravity")
@@ -35,16 +44,22 @@ public plugin_init()
 	iTempPointer = get_cvar_pointer("sv_airaccelerate")
 	set_pcvar_num(iTempPointer, 100)
 
+	// Hooks
 	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "OnPlayerResetMaxSpeed", 1)
 	RegisterHookChain(RG_CBasePlayer_TakeDamage, "OnTakeDamage")
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn", 1)
 	RegisterHookChain(RG_RoundEnd, "OnRoundEnd", 1)
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnNewRound", 1)
+	RegisterHookChain(RG_CBasePlayer_Jump, "OnPlayerJump")
+	register_touch("player", "worldspawn", "OnPlayerTouchWorld")
+	register_touch("player", "func_breakable", "OnPlayerTouchWorld")
+	register_touch("player", "player", "OnPlayerTouchPlayer")
 	RegisterHam(Ham_Touch, "player", "OnPlayerTouch")
 	RegisterHam(Ham_Player_PreThink, "player", "OnPlayerThink")
 	register_message(get_user_msgid("TextMsg"), "TextMsgHook")
 	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
 
+	// Hud
 	g_iSyncHud = CreateHudSyncObj()
 	g_iHudEnt = rg_create_entity("info_target")
 	set_entvar(g_iHudEnt, var_classname, "HudEnt")
@@ -63,6 +78,7 @@ public plugin_init()
 	RegisterHookChain(RG_CBasePlayer_TraceAttack, "ReapiSupercedeHandler")
 }
 
+// Teams
 public plugin_cfg()
 {
 	g_iTeams[1] = FLEER
@@ -70,11 +86,13 @@ public plugin_cfg()
 	g_iTeams[3] = NONE
 }
 
+// Model
 public plugin_precache()
 {
 	precache_model("models/v_shoots.mdl")
 }
 
+// Reset Vars, Update Stats
 public client_putinserver(id)
 {
 	g_iPlayerStats[id][0] = 0
@@ -84,6 +102,8 @@ public client_putinserver(id)
 
 public OnPlayerThink(id)
 {
+	// Turbo
+
 	static iButtons, iOldButtons
 	iButtons = get_entvar(id, var_button)
 	iOldButtons = get_entvar(id, var_oldbuttons)
@@ -96,13 +116,64 @@ public OnPlayerThink(id)
 	{
 		TurboOff(id + 2000)
 	}
+
+	// Wall Touch
+
+	if (g_bJump[id])
+	{
+		g_fVel[id][0] = 0.0 - g_fVel[id][0]
+		set_entvar(id, var_velocity, g_fVel[id])
+		set_entvar(id, var_gaitsequence, 6)
+		set_entvar(id, var_frame, 0.0)
+
+		g_iWallTouches[id]++
+		g_bJump[id] = false
+	}
 }
 
-public OnPlayerTouch(iToucher, iTouched)
+public OnPlayerJump(id)
 {
-	if (!is_user_alive(iTouched) || !is_user_alive(iToucher) || g_bTrainingOn || !g_bCanKill)
+	if (get_entvar(id, var_flags) & FL_ONGROUND)
 	{
-		return HAM_IGNORED
+		// Bhop
+		get_entvar(id, var_velocity, g_fVel[id])
+		g_fVel[id][2] = 250.0
+		set_entvar(id, var_velocity, g_fVel[id])
+		set_entvar(id, var_gaitsequence, 6)
+		set_entvar(id, var_frame, 0.0)
+		g_fVel[id][2] = 300.0
+	
+		// Reset
+		if (~get_entvar(id, var_oldbuttons) & IN_JUMP)
+		{
+			g_iWallTouches[id] = 0
+		}
+		else
+		{
+			g_iWallTouches[id] = get_pcvar_num(g_iCvarTouches)
+		}
+	}
+}
+
+public OnPlayerTouchWorld(iPlayer)
+{
+	// Wall Touch
+
+	if (g_iWallTouches[iPlayer] >= get_pcvar_num(g_iCvarTouches) || ~get_entvar(iPlayer, var_button) & IN_JUMP || get_entvar(iPlayer, var_flags) & FL_ONGROUND)
+	{
+		return
+	}
+
+	g_bJump[iPlayer] = true
+}
+
+public OnPlayerTouchPlayer(iToucher, iTouched)
+{
+	// Kill
+
+	if (!is_user_alive(iTouched) || !is_user_alive(iToucher) || g_bTrainingOn || !g_bCanKill || get_member(iToucher, m_iTeam) == get_member(iTouched, m_iTeam))
+	{
+		return
 	}
 	
 	new iKiller, iVictim
@@ -127,10 +198,9 @@ public OnPlayerTouch(iToucher, iTouched)
 	g_iPlayerStats[iVictim][1]++
 	UpdateStats(iKiller)
 	UpdateStats(iVictim)
-
-	return HAM_IGNORED
 }
 
+// Eound end & game commencing
 public TextMsgHook(iMsgID, iMsgDest, id)
 {
 	static szMsg[32]
@@ -225,6 +295,7 @@ public OnRoundEnd()
 	g_iLastWinner = 0
 }
 
+// New Round
 public OnNewRound()
 {
 	g_bCanKill = true

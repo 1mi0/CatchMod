@@ -3,6 +3,13 @@
 #include <cromchat>
 #include <catch_const>
 
+enum LiteType
+{
+	None,
+	Lite,
+	Dark
+}
+
 enum Sections
 {
 	SectionNone = 0,
@@ -34,13 +41,15 @@ enum _:UserSettings
 	TrailColors[3],
 	bool:CustomColorOn,
 	TrailType,
+	LiteType:TrailLite
 }
 
 enum _:TrailsSettings
 {
 	AdminFlags,
 	TrailLife,
-	CustomColorFlags
+	CustomColorFlags,
+	TrailModeAdd
 }
 
 new Array:g_aColorsArray
@@ -50,8 +59,13 @@ new g_iTypeCount
 new g_eTrailsSettings[TrailsSettings]
 
 new g_eUserSettings[33][UserSettings]
-new g_iUserOrigin[33][3]
-new bool:g_bPosStopped[33]
+
+new g_szLiteString[LiteType][32] =
+{
+	"Default",
+	"Lite",
+	"Dark"
+}
 
 new g_iColorsMenu
 new g_iTypesMenu
@@ -169,6 +183,10 @@ LoadFile()
 					{
 						g_eTrailsSettings[TrailLife] = abs(str_to_num(szValue))
 					}
+					else if (equali(szKey, "TRAIL_MODE_ADD"))
+					{
+						g_eTrailsSettings[TrailModeAdd] = abs(str_to_num(szValue))
+					}
 					else if (equali(szKey, "ADMIN_CUSTOM_COLOR"))
 					{
 						g_eTrailsSettings[CustomColorFlags] = read_flags(szValue)
@@ -225,6 +243,9 @@ OpenTrailMenu(id)
 	}
 	menu_additem(iMenu, szTemp, .callback = iMenuCallBack)
 
+	formatex(szTemp, charsmax(szTemp), "Trail Mode - \r%s", g_szLiteString[g_eUserSettings[id][TrailLite]])
+	menu_additem(iMenu, szTemp)
+
 	formatex(szTemp, charsmax(szTemp), "Trail - %s", g_eUserSettings[id][TrailOn] ? "\yOn" : "\rOff")
 	menu_additem(iMenu, szTemp)
 
@@ -253,6 +274,41 @@ public TrailMenu_Handler(id, iMenu, iItem)
 			client_cmd(id, "messagemode CT_CUSTOM_COLOR")
 		}
 		case 3:
+		{
+			new eTempArray[ColorsData]
+			ArrayGetArray(g_aColorsArray, g_eUserSettings[id][TrailColorID], eTempArray)
+
+			switch (g_eUserSettings[id][TrailLite])
+			{
+				case Dark:
+				{
+					g_eUserSettings[id][TrailLite] = None
+				}
+
+				case None:
+				{
+					g_eUserSettings[id][TrailLite] = Lite
+
+					for (new i; i < 3; i++)
+					{
+						eTempArray[Color][i] = clamp(eTempArray[Color][i] - g_eTrailsSettings[TrailModeAdd], 0, 255)
+					}
+				}
+
+				case Lite:
+				{
+					g_eUserSettings[id][TrailLite] = Dark
+
+					for (new i; i < 3; i++)
+					{
+						eTempArray[Color][i] = clamp(eTempArray[Color][i] + g_eTrailsSettings[TrailModeAdd], 0, 255)
+					}
+				}
+			}
+
+			copy(g_eUserSettings[id][TrailColors], 3, eTempArray[Color])
+		}
+		case 4:
 		{
 			if (g_eUserSettings[id][TrailOn])
 			{
@@ -293,9 +349,29 @@ public ColorsMenu_Handler(id, iMenu, iItem)
 	new eTempArray[ColorsData]
 	ArrayGetArray(g_aColorsArray, iItem, eTempArray)
 
-	g_eUserSettings[id][TrailColors][0] = eTempArray[Color][0]
-	g_eUserSettings[id][TrailColors][1] = eTempArray[Color][1]
-	g_eUserSettings[id][TrailColors][2] = eTempArray[Color][2]
+	switch (g_eUserSettings[id][TrailLite])
+	{
+		case Dark:
+		{
+			g_eUserSettings[id][TrailLite] = None
+			for (new i; i < 3; i++)
+			{
+				eTempArray[Color][i] = clamp(eTempArray[Color][i] + g_eTrailsSettings[TrailModeAdd], 0, 255)
+			}
+		}
+
+		case Lite:
+		{
+			g_eUserSettings[id][TrailLite] = Dark
+
+			for (new i; i < 3; i++)
+			{
+				eTempArray[Color][i] = clamp(eTempArray[Color][i] + g_eTrailsSettings[TrailModeAdd], 0, 255)
+			}
+		}
+	}
+
+	copy(g_eUserSettings[id][TrailColors], 3, eTempArray[Color])
 	g_eUserSettings[id][TrailColorID] = iItem
 	g_eUserSettings[id][CustomColorOn] = false
 

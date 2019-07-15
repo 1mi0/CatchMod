@@ -18,6 +18,7 @@ new Teams:g_iTeams[5]
 new g_iLastWinner
 new g_iHudEnt, g_iSyncHud
 new bool:g_bCanKill
+new bool:g_bGameCommencing
 // Player Vars
 new Teams:g_iPlayerTeams[33]
 new g_iPlayerStats[33][2]
@@ -134,22 +135,22 @@ public OnPlayerJump(id)
 {
 	if (get_entvar(id, var_flags) & FL_ONGROUND)
 	{
-		// Bhop
-		get_entvar(id, var_velocity, g_fVel[id])
-		g_fVel[id][2] = 250.0
-		set_entvar(id, var_velocity, g_fVel[id])
-		set_entvar(id, var_gaitsequence, 6)
-		set_entvar(id, var_frame, 0.0)
-		g_fVel[id][2] = 300.0
+		// Bhop - imitaing jump
+		get_entvar(id, var_velocity, g_fVel[id]) // Getting The velocity
+		g_fVel[id][2] = 250.0 // Adding 250.0 to the 3rd dim - Up
+		set_entvar(id, var_velocity, g_fVel[id]) // Setting the new velocity
+		set_entvar(id, var_gaitsequence, 6) // Some animations
+		set_entvar(id, var_frame, 0.0) // Some animations
+		g_fVel[id][2] = 300.0 // Setting 300.0 to the 3rd dim for the wall jump
 	
 		// Reset
-		if (~get_entvar(id, var_oldbuttons) & IN_JUMP)
+		if (~get_entvar(id, var_oldbuttons) & IN_JUMP) // if he is in bhop
 		{
-			g_iWallTouches[id] = 0
+			g_iWallTouches[id] = 0 // no wall jumps
 		}
 		else
 		{
-			g_iWallTouches[id] = get_pcvar_num(g_iCvarTouches)
+			g_iWallTouches[id] = get_pcvar_num(g_iCvarTouches) // wall jump, cuz he is not in bhop
 		}
 	}
 }
@@ -160,10 +161,10 @@ public OnPlayerTouchWorld(iPlayer)
 
 	if (g_iWallTouches[iPlayer] >= get_pcvar_num(g_iCvarTouches) || ~get_entvar(iPlayer, var_button) & IN_JUMP || get_entvar(iPlayer, var_flags) & FL_ONGROUND)
 	{
-		return
+		return // if he cant wall jump return
 	}
 
-	g_bJump[iPlayer] = true
+	g_bJump[iPlayer] = true // setting true, so the next frame he'll wall jump
 }
 
 public OnPlayerTouchPlayer(iToucher, iTouched)
@@ -172,9 +173,10 @@ public OnPlayerTouchPlayer(iToucher, iTouched)
 
 	if (!is_user_alive(iTouched) || !is_user_alive(iToucher) || g_bTrainingOn || !g_bCanKill || get_member(iToucher, m_iTeam) == get_member(iTouched, m_iTeam))
 	{
-		return
+		return // if they cant kill each other
 	}
 	
+	// Who's the killer
 	new iKiller, iVictim
 	switch (g_iPlayerTeams[iToucher])
 	{
@@ -190,76 +192,46 @@ public OnPlayerTouchPlayer(iToucher, iTouched)
 		}
 	}
 
-	user_silentkill(iVictim)
-	make_deathmsg(iKiller, iVictim, 1, "weapon_knife")
+	user_silentkill(iVictim) // Silent killing the victim
+	make_deathmsg(iKiller, iVictim, 1, "weapon_knife") // Making new death msg
 
-	g_iPlayerStats[iKiller][0]++
-	g_iPlayerStats[iVictim][1]++
-	UpdateStats(iKiller)
-	UpdateStats(iVictim)
+	g_iPlayerStats[iKiller][0]++ // adding kills to the killer
+	g_iPlayerStats[iVictim][1]++ // adding deaths to the victim
+	UpdateStats(iKiller) // updating killer's stats
+	UpdateStats(iVictim) // updating victim's stats
 }
 
 // Eound end & game commencing
 public TextMsgHook(iMsgID, iMsgDest, id)
 {
 	static szMsg[32]
-	get_msg_arg_string(2, szMsg, charsmax(szMsg))
+	get_msg_arg_string(2, szMsg, charsmax(szMsg)) // getting the msg
 
-	if (equal(szMsg, "#Game_Commencing"))
+	if (equal(szMsg, "#Game_Commencing")) // if the game is commencing
 	{
-		g_iTeams[1] = CATCHER
-		g_iTeams[2] = FLEER
-		UpdateHud(id)
-
-		new iPlayers[32], iPlayersNum
-		get_players_ex(iPlayers, iPlayersNum)
-		for (new i, iTarget; i < iPlayersNum; i++)
+		if (g_bTrainingOn) // if training on
 		{
-			iTarget = iPlayers[i]
-
-			g_iPlayerStats[iTarget][0] = 0
-			g_iPlayerStats[iTarget][1] = 0
-			UpdateStats(iTarget)
+			return PLUGIN_CONTINUE // return
 		}
 
-		return PLUGIN_CONTINUE 
-	}
-	else if ((equal(szMsg, "#Terrorists_Win") || equal(szMsg, "#CTs_Win") || equal(szMsg, "#Target_Saved") || equal(szMsg, "#CTs_Win")) && !g_bTrainingOn)
-	{
-		new iPlayers[32], iPlayersNum
-		new iTemp
-
-		if (g_iTeams[1] == FLEER)
+		// setting the default teams
+		if (g_iTeam[1] == FLEER && g_iTeams[2] == CATCHER)
 		{
-			iTemp = 1
-			get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, "TERRORIST")
-		}
-		else
-		{
-			iTemp = 2
-			get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, "CT")
+			g_iTeams[1] = CATCHER
+			g_iTeams[2] = FLEER
 		}
 
-		if (iPlayersNum)
+		// reseting kills & deaths
+		g_iPlayerStats[id][0] = 0
+		g_iPlayerStats[id][1] = 0
+
+		UpdateHud(id) // updating hud
+		UpdateStats(id) // updating stats
+
+		if (!g_bGameCommencing)
 		{
-			g_iLastWinner = iTemp
-
-			for (new i, iTarget; i < iPlayersNum; i++)
-			{
-				iTarget = iPlayers[i]
-				g_iPlayerStats[iTarget][0] += 3
-				UpdateStats(iTarget)
-			}
-
-			client_print(0, print_center, "Fleers won the round!")
-		}
-		else
-		{
-			g_iLastWinner = iTemp == 1 ? 2 : 1
-			client_print(0, print_center, "Catchers won the round!")
-		}
-
-		g_bCanKill = false
+			g_bGameCommencing = true
+		} 
 	}
 
 	return PLUGIN_HANDLED
@@ -267,6 +239,55 @@ public TextMsgHook(iMsgID, iMsgDest, id)
 
 public OnRoundEnd()
 {
+	if (g_bGameCommencing && !g_bTrainingOn)
+	{
+		g_iTeams[1] = CATCHER
+		g_iTeams[2] = FLEER
+
+		g_bGameCommencing = false
+		return
+	}
+
+	if (g_bTrainingOn)
+	{
+		return
+	}
+
+	new iPlayers[32], iPlayersNum
+	new iTemp
+
+	if (g_iTeams[1] == FLEER)
+	{
+		iTemp = 1
+		get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, "TERRORIST")
+	}
+	else
+	{
+		iTemp = 2
+		get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, "CT")
+	}
+
+	if (iPlayersNum)
+	{
+		g_iLastWinner = iTemp
+
+		for (new i, iTarget; i < iPlayersNum; i++)
+		{
+			iTarget = iPlayers[i]
+			g_iPlayerStats[iTarget][0] += 3
+			UpdateStats(iTarget)
+		}
+
+		client_print(0, print_center, "Fleers won the round!")
+	}
+	else
+	{
+		g_iLastWinner = iTemp == 1 ? 2 : 1
+		client_print(0, print_center, "Catchers won the round!")
+	}
+
+	g_bCanKill = false
+
 	if (g_iLastWinner == 1)
 	{
 		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_TERRORISTS)

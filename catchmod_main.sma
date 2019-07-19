@@ -10,17 +10,17 @@
 
 // 3rd part
 #include <catch_const>
+#include <cromchat>
 
 #define MAXPLAYERSVAR MAX_PLAYERS + 1
 #define SEMICLIP_DISTANCE 260.0
 
 // Cvars
 new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed, g_iCvarTouches
-// Engine Vars
+// Vars
 new bool:g_bTrainingOn
 new Teams:g_iTeams[5]
 new g_iLastWinner
-new g_iHudEnt, g_iSyncHud
 new bool:g_bCanKill
 new bool:g_bGameCommencing
 // Player Vars
@@ -34,10 +34,11 @@ new g_iWallTouches[MAXPLAYERSVAR]
 new bool:g_bJump[MAXPLAYERSVAR]
 new bool:g_bHasSemiclip[MAXPLAYERSVAR]
 new bool:g_bSolid[MAXPLAYERSVAR]
+new bool:g_bSpeedOn[MAXPLAYERSVAR]
 
 public plugin_init()
 {
-	register_plugin("Catch Mod: Main", "4.0", "mi0")
+	register_plugin("Catch Mod: Main", CATCHMOD_VER, "mi0")
 
 	// Cvars
 	g_iCvarSpeed = register_cvar("catch_speed", "640.0")
@@ -69,11 +70,15 @@ public plugin_init()
 	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
 
 	// Hud
-	g_iSyncHud = CreateHudSyncObj()
-	g_iHudEnt = rg_create_entity("info_target")
-	set_entvar(g_iHudEnt, var_classname, "HudEnt")
-	set_entvar(g_iHudEnt, var_nextthink, get_gametime() + 1.0)
-	SetThink(g_iHudEnt, "HudEntThinking")
+	for (new i; i < sizeof(g_iHud); i++)
+	{
+		g_iHud[_:i][HudSync] = CreateHudSyncObj()
+		g_iHud[_:i][TaskEntity] = rg_create_entity("info_target")
+		set_entvar(g_iHud[_:i][TaskEntity], var_classname, "HudTaskEntity")
+		set_entvar(g_iHud[_:i][TaskEntity], var_nextthink, get_gametime() + 1.0)
+	}
+	SetThink(g_iHud[HudStatusEnt][TaskEntity], "StatusEntityThink")
+	SetThink(g_iHud[HudSpeedEnt][TaskEntity], "SpeedEntityThink")
 
 	// SUPERCEDE
 	RegisterHam(Ham_Spawn, "hostage_entity", "HamSupercedeHandler")
@@ -85,6 +90,20 @@ public plugin_init()
 	RegisterHookChain(RG_CBasePlayer_OnSpawnEquip, "ReapiSupercedeHandler")
 	RegisterHookChain(RG_CSGameRules_GiveC4, "ReapiSupercedeHandler")
 	RegisterHookChain(RG_CBasePlayer_TraceAttack, "ReapiSupercedeHandler")
+
+	// Cmds
+	register_clcmd("say /speed", "cmd_speed")
+
+	CC_SetPrefix("^4Catch Mod >>")
+}
+
+// Cmds
+public cmd_speed(id)
+{
+	g_bSpeedOn[id] = !g_bSpeedOn[id]
+	CC_SendMatched(id, id, "You successfuly turned your speed ^3%s^1!", g_bSpeedOn[id] ? "On" : "Off")
+
+	return PLUGIN_HANDLED
 }
 
 // Teams
@@ -104,11 +123,13 @@ public plugin_precache()
 // Reset Vars, Update Stats
 public client_putinserver(id)
 {
+	g_bSpeedOn[id] = true
 	g_iPlayerStats[id][0] = 0
 	g_iPlayerStats[id][1] = 0
 	set_task(0.5, "UpdateStats", id)
 }
 
+// Think
 public OnPlayerThink(id)
 {
 	// Turbo
@@ -147,6 +168,7 @@ public OnPlayerThinkPost(id)
 	SemiClipPostThink()
 }
 
+// Jump
 public OnPlayerJump(id)
 {
 	if (get_entvar(id, var_flags) & FL_ONGROUND)
@@ -171,6 +193,7 @@ public OnPlayerJump(id)
 	}
 }
 
+// Touch Wall
 public OnPlayerTouchWorld(iPlayer)
 {
 	// Wall Touch
@@ -183,6 +206,7 @@ public OnPlayerTouchWorld(iPlayer)
 	g_bJump[iPlayer] = true // setting true, so the next frame he'll wall jump
 }
 
+// Touch Player
 public OnPlayerTouchPlayer(iToucher, iTouched)
 {
 	// Kill
@@ -253,6 +277,7 @@ public TextMsgHook(iMsgID, iMsgDest, id)
 	return PLUGIN_HANDLED
 }
 
+// Round End
 public OnRoundEnd()
 {
 	if (g_bGameCommencing && !g_bTrainingOn)
@@ -338,7 +363,7 @@ public OnNewRound()
 }
 
 //Hud
-public HudEntThinking()
+public StatusEntityThink()
 {
 	new iPlayers[32], iPlayersNum
 	get_players_ex(iPlayers, iPlayersNum)
@@ -348,7 +373,7 @@ public HudEntThinking()
 		UpdateHud(iPlayers[iPlayersNum])
 	}
 
-	set_entvar(g_iHudEnt, var_nextthink, get_gametime() + 5.0)
+	set_entvar(g_iHud[HudStatusEnt][TaskEntity], var_nextthink, get_gametime() + 5.0)
 }
 
 UpdateHud(id)
@@ -375,7 +400,7 @@ UpdateHud(id)
 	}
 
 	set_hudmessage(255, 255, 255, 0.02, 0.24, 0, 0.0, 5.0, 0.2, 0.0)
-	ShowSyncHudMsg(id, g_iSyncHud, szTemp)
+	ShowSyncHudMsg(id, g_iHud[HudStatusEnt][HudSync], szTemp)
 }
 
 // Stats
@@ -526,6 +551,33 @@ public FM__AddToFullPack_Pre(iEs, e, iEnt, iHost, iHostFlags, iPlayer, pSet)
 	return FMRES_IGNORED
 }
 */
+
+// Speedometer
+public SpeedEntityThink()
+{
+	static i, iTarget
+	static Float:fVelocity[3]
+	static Float:fSpeed, Float:f2dmSpeed
+	
+	for (i = 1; i <= 32; i++)
+	{
+		if (!is_user_connected(i) || !g_bSpeedOn[i])
+		{
+			continue
+		}
+		
+		iTarget = get_entvar(i, var_iuser1) == 4 ? get_entvar(i, var_iuser1) : i
+		get_entvar(iTarget, var_velocity, fVelocity)
+
+		fSpeed = vector_length(fVelocity)
+		f2dmSpeed = floatsqroot(fVelocity[0] * fVelocity[0] + fVelocity[1] * fVelocity[1])
+		
+		set_hudmessage(255, 255, 255, -1.0, 0.7, 0, 0.0, 0.2, 0.01, 0.0)
+		ShowSyncHudMsg(i, g_iHud[HudSpeedEnt][HudSync], "%3.2f units/second^n%3.2f velocity", fSpeed, f2dmSpeed)
+	}
+
+	set_entvar(g_iHud[HudSpeedEnt][TaskEntity], var_nextthink, get_gametime() + 0.1)
+}
 
 // Natives
 public plugin_natives()

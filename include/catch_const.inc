@@ -5,3 +5,19 @@
 
 #define CATCHMOD_VER 4.0
 #define VALID_PLAYER(%1) 1 <= %1 <= 32
+
+enum Teams
+{
+	FLEER,
+	CATCHER,
+	TRAINING,
+	NONE
+}
+
+new g_szTeamsNames[Teams][32] =
+{
+	"None",
+	"Fleer",
+	"Catcher",
+	"Training"
+}

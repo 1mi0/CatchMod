@@ -5,10 +5,14 @@
 // Modules
 #include <hamsandwich>
 #include <reapi>
+#include <fakemeta>
 #include <engine>
 
 // 3rd part
 #include <catch_const>
+
+#define MAXPLAYERSVAR MAX_PLAYERS + 1
+#define SEMICLIP_DISTANCE 260.0
 
 // Cvars
 new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed, g_iCvarTouches
@@ -20,14 +24,16 @@ new g_iHudEnt, g_iSyncHud
 new bool:g_bCanKill
 new bool:g_bGameCommencing
 // Player Vars
-new Teams:g_iPlayerTeams[33]
-new g_iPlayerStats[33][2]
-new g_iTurbo[33]
-new bool:g_bTurboOn[33]
-new Float:g_fPlayerSpeed[33]
-new Float:g_fVel[33][3]
-new g_iWallTouches[33]
-new bool:g_bJump[33]
+new Teams:g_iPlayerTeams[MAXPLAYERSVAR]
+new g_iPlayerStats[MAXPLAYERSVAR][2]
+new g_iTurbo[MAXPLAYERSVAR]
+new bool:g_bTurboOn[MAXPLAYERSVAR]
+new Float:g_fPlayerSpeed[MAXPLAYERSVAR]
+new Float:g_fVel[MAXPLAYERSVAR][3]
+new g_iWallTouches[MAXPLAYERSVAR]
+new bool:g_bJump[MAXPLAYERSVAR]
+new bool:g_bHasSemiclip[MAXPLAYERSVAR]
+new bool:g_bSolid[MAXPLAYERSVAR]
 
 public plugin_init()
 {
@@ -56,6 +62,9 @@ public plugin_init()
 	register_touch("player", "func_breakable", "OnPlayerTouchWorld")
 	register_touch("player", "player", "OnPlayerTouchPlayer")
 	RegisterHam(Ham_Player_PreThink, "player", "OnPlayerThink")
+	RegisterHam(Ham_Player_PostThink, "player", "OnPlayerThinkPost")
+	register_forward(FM_AddToFullPack, "FM__AddToFullPack", 1)
+	register_forward(FM_AddToFullPack, "FM__AddToFullPack_Pre")
 	register_message(get_user_msgid("TextMsg"), "TextMsgHook")
 	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
 
@@ -129,6 +138,13 @@ public OnPlayerThink(id)
 		g_iWallTouches[id]++
 		g_bJump[id] = false
 	}
+
+	SemiClipPreThink(id)
+}
+
+public OnPlayerThinkPost(id)
+{
+	SemiClipPostThink()
 }
 
 public OnPlayerJump(id)
@@ -215,7 +231,7 @@ public TextMsgHook(iMsgID, iMsgDest, id)
 		}
 
 		// setting the default teams
-		if (g_iTeam[1] == FLEER && g_iTeams[2] == CATCHER)
+		if (g_iTeams[1] == FLEER && g_iTeams[2] == CATCHER)
 		{
 			g_iTeams[1] = CATCHER
 			g_iTeams[2] = FLEER
@@ -230,7 +246,7 @@ public TextMsgHook(iMsgID, iMsgDest, id)
 
 		if (!g_bGameCommencing)
 		{
-			g_bGameCommencing = true
+			g_bGameCommencing = true // setting commencing true
 		} 
 	}
 
@@ -241,16 +257,19 @@ public OnRoundEnd()
 {
 	if (g_bGameCommencing && !g_bTrainingOn)
 	{
+		// Setting default teams
 		g_iTeams[1] = CATCHER
 		g_iTeams[2] = FLEER
 
+		// resetting commencing
 		g_bGameCommencing = false
 		return
 	}
 
-	if (g_bTrainingOn)
+	if (g_bTrainingOn) // if is train
 	{
-		return
+		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_DRAW) // Setting draw so no one of the teams wins
+		return // return cuz when its training no one wins
 	}
 
 	new iPlayers[32], iPlayersNum
@@ -271,9 +290,10 @@ public OnRoundEnd()
 	{
 		g_iLastWinner = iTemp
 
-		for (new i, iTarget; i < iPlayersNum; i++)
+		new iTarget
+		for (--iPlayersNum; iPlayersNum >= 0; iPlayersNum--)
 		{
-			iTarget = iPlayers[i]
+			iTarget = iPlayers[iPlayersNum]
 			g_iPlayerStats[iTarget][0] += 3
 			UpdateStats(iTarget)
 		}
@@ -295,10 +315,6 @@ public OnRoundEnd()
 	else if (g_iLastWinner == 2)
 	{
 		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_CTS)
-	}
-	else
-	{
-		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_DRAW)
 	}
 
 	if (g_iTeams[1] == FLEER)
@@ -327,9 +343,9 @@ public HudEntThinking()
 	new iPlayers[32], iPlayersNum
 	get_players_ex(iPlayers, iPlayersNum)
 
-	for (new i; i < iPlayersNum; i++)
+	for (--iPlayersNum; iPlayersNum >= 0; iPlayersNum--)
 	{
-		UpdateHud(iPlayers[i])
+		UpdateHud(iPlayers[iPlayersNum])
 	}
 
 	set_entvar(g_iHudEnt, var_nextthink, get_gametime() + 5.0)
@@ -343,25 +359,7 @@ UpdateHud(id)
 	}
 
 	new szTemp[192]
-	switch (g_iPlayerTeams[id])
-	{
-		case FLEER:
-		{
-			formatex(szTemp, charsmax(szTemp), "Status : Fleer")
-		}
-		case CATCHER:
-		{
-			formatex(szTemp, charsmax(szTemp), "Status : Catcher")
-		}
-		case TRAINING:
-		{
-			formatex(szTemp, charsmax(szTemp), "Status : Training")
-		}
-		default:
-		{
-			formatex(szTemp, charsmax(szTemp), "Status : None")
-		}
-	}
+	formatex(szTemp, charsmax(szTemp), "Status : %s", g_szTeamsNames[g_iPlayerTeams[id]])
 
 	if (g_iTurbo[id] >= 10)
 	{
@@ -428,6 +426,106 @@ public TurboOff(id)
 	g_bTurboOn[id] = false
 	UpdateHud(id)
 }
+
+// SemiClip
+
+SemiClipFirstThink()
+{
+	new iPlayers[MAX_PLAYERS], iNum, id
+	get_players_ex(iPlayers, iNum, GetPlayers_ExcludeDead)
+
+	for (--iNum; iNum >= 0; iNum--)
+	{
+		id = iPlayers[iNum]
+		g_bSolid[id] = pev(id, pev_solid) == SOLID_SLIDEBOX ? true : false
+	}
+}
+
+SemiClipPreThink(id)
+{
+	static i, LastThink
+	
+	if (LastThink > id)
+	{
+		SemiClipFirstThink()
+	}
+	
+	LastThink = id
+
+	if (!g_bSolid[id])
+	{
+		return FMRES_IGNORED
+	}
+	
+	new iPlayers[MAX_PLAYERS], iNum
+	get_players_ex(iPlayers, iNum, GetPlayers_ExcludeDead)
+
+	for (--iNum; iNum >= 0; iNum--)
+	{
+		i = iPlayers[iNum]
+
+		if (!g_bSolid[i] || id == i)
+		{
+			continue
+		}
+
+		if (g_iPlayerTeams[i] == g_iPlayerTeams[id])
+		{
+			set_pev(i, pev_solid, SOLID_NOT)
+			g_bHasSemiclip[i] = true
+		}
+	}
+	
+	return FMRES_IGNORED
+}
+
+SemiClipPostThink()
+{
+	new iPlayers[MAX_PLAYERS], iNum, iPlayer
+	get_players_ex(iPlayers, iNum, GetPlayers_ExcludeDead)
+
+	for (--iNum; iNum >= 0; iNum--)
+	{
+		iPlayer = iPlayers[iNum]
+
+		if (g_bHasSemiclip[iPlayer])
+		{
+			set_pev(iPlayer, pev_solid, SOLID_SLIDEBOX)
+			g_bHasSemiclip[iPlayer] = false
+		}
+	}
+}
+
+public FM__AddToFullPack(iEs, e, iEnt, iHost, iHostFlags, iPlayer, pSet)
+{
+	if (iPlayer)
+	{
+		static Float:flDistance
+		flDistance = entity_range(iHost, iEnt)
+		
+		if (g_bSolid[iHost] && g_bSolid[iEnt] && g_iPlayerTeams[iHost] == g_iPlayerTeams[iEnt] && flDistance < SEMICLIP_DISTANCE && is_user_alive(iHost))
+		{
+			set_es(iEs, ES_Solid, SOLID_NOT)
+			set_es(iEs, ES_RenderMode, kRenderTransAlpha)
+			set_es(iEs, ES_RenderAmt, floatround(flDistance))
+		}
+	}
+	
+	return FMRES_IGNORED
+}
+
+/*
+public FM__AddToFullPack_Pre(iEs, e, iEnt, iHost, iHostFlags, iPlayer, pSet)
+{
+	if (iPlayer && is_user_alive(iHost) && g_iPlayerTeams[iHost] == CATCHER && g_iTeam[iEnt] == FLEER)
+	{
+		forward_return(FMV_CELL, 0)
+		return FMRES_SUPERCEDE
+	}
+	
+	return FMRES_IGNORED
+}
+*/
 
 // Natives
 public plugin_natives()

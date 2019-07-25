@@ -1,7 +1,8 @@
 #include <amxmodx>
 #include <amxmisc>
+#include <reapi>
 #include <cromchat>
-#include <catch_const>
+#include <catchmod>
 
 enum LiteType
 {
@@ -51,6 +52,7 @@ enum _:TrailsSettings
 	CustomColorFlags,
 	TrailModeAdd
 }
+new g_eTeamsColors[Teams][3]
 
 new Array:g_aColorsArray
 new Array:g_aTypesArray
@@ -73,6 +75,8 @@ new g_iTypesMenu
 public plugin_init()
 {
 	register_plugin("Catch Mod: Trails", CATCHMOD_VER, "mi0")
+
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn", 1)
 
 	register_clcmd("say /trails", "cmd_trails")
 	register_clcmd("CT_CUSTOM_COLOR", "cmd_custom_color")
@@ -105,6 +109,7 @@ LoadFile()
 	{
 		new szLine[256], Sections:iSection = SectionNone
 		new szKey[32], szValue[32]
+		new Teams:iTeam
 		new szParsedColor[3][4]
 		new eTempColorArray[ColorsData], eTempTypeArray[TrailTypeData]
 
@@ -193,12 +198,43 @@ LoadFile()
 					{
 						g_eTrailsSettings[CustomColorFlags] = read_flags(szValue)
 					}
-					else if (equali((szKey), "CHAT_PREFIX"))
+					else if (equali(szKey, "CHAT_PREFIX"))
 					{
 						if (szValue[0] != EOS)
 						{
 							CC_SetPrefix(szValue)
 						}
+					}
+					else if (equali(szKey, "FLEER_COLOR") || equali(szKey, "CATCHER_COLOR") || equali(szKey, "TRAINING_COLOR") || equali(szKey, "NONE_COLOR"))
+					{
+						parse(szValue, szParsedColor[0], charsmax(szParsedColor[]), szParsedColor[1], charsmax(szParsedColor[]), szParsedColor[2], charsmax(szParsedColor[]))
+
+						switch (szKey[0])
+						{
+							case 'F':
+							{
+								iTeam = FLEER
+							}
+							
+							case 'C':
+							{
+								iTeam = CATCHER
+							}
+
+							case 'T':
+							{
+								iTeam = TRAINING
+							}
+							
+							case 'N':
+							{
+								iTeam = NONE
+							}
+						}
+
+						g_eTeamsColors[iTeam][0] = str_to_num(szParsedColor[0])
+						g_eTeamsColors[iTeam][1] = str_to_num(szParsedColor[1])
+						g_eTeamsColors[iTeam][2] = str_to_num(szParsedColor[2])
 					}
 				}
 			}
@@ -432,6 +468,26 @@ public TypesMenu_Handler(id, iMenu, iItem)
 	menu_cancel(id)
 	OpenTrailMenu(id)
 	return PLUGIN_HANDLED
+}
+
+public OnPlayerSpawn(id)
+{
+	if (g_eUserSettings[id][TrailOn])
+	{
+		return HC_CONTINUE
+	}
+
+	new Teams:iPlayerTeam = catchmod_get_user_team(id)
+
+	copy(g_eUserSettings[id][TrailColors], 3, g_eTeamsColors[iPlayerTeam])
+
+	set_entvar(id, var_renderfx, kRenderFxGlowShell)
+	set_entvar(id, var_rendercolor, g_eTeamsColors[iPlayerTeam])
+	set_entvar(id, var_renderamt, 25.0)
+
+	CC_SendMatched(id, id, "Your Trail colors and Render colors are set to %s", g_szTeamsNames[iPlayerTeam])
+
+	return HC_CONTINUE
 }
 
 StartUserTrail(id)

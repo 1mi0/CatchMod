@@ -21,17 +21,3 @@ new g_szTeamsNames[Teams][32] =
 	"Catcher",
 	"Training"
 }
-
-enum _:HudEntities
-{
-	HudStatusEnt,
-	HudSpeedEnt
-}
-
-enum _:HudSE
-{
-	TaskEntity,
-	HudSync
-}
-
-new g_iHud[HudEntities][HudSE]

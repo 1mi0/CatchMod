@@ -35,6 +35,20 @@ new bool:g_bJump[MAXPLAYERSVAR]
 new bool:g_bHasSemiclip[MAXPLAYERSVAR]
 new bool:g_bSolid[MAXPLAYERSVAR]
 new bool:g_bSpeedOn[MAXPLAYERSVAR]
+// Hud
+enum _:HudEntities
+{
+	HudStatusEnt,
+	HudSpeedEnt
+}
+
+enum _:HudSE
+{
+	TaskEntity,
+	HudSync
+}
+
+new g_iHud[HudEntities][HudSE]
 
 public plugin_init()
 {
@@ -42,9 +56,9 @@ public plugin_init()
 
 	// Cvars
 	g_iCvarSpeed = register_cvar("catch_speed", "640.0")
+	g_iCvarTouches = register_cvar("catch_touches", "3")
+	g_iCvarTurboSpeed = register_cvar("catch_turbospeed", "840.0")
 	g_iCvarTurbo = register_cvar("catch_turbo", "30")
-	g_iCvarTurboSpeed = register_cvar("catch_turbo_speed", "840.0")
-	g_iCvarTouches = register_cvar("catch_walls_touches", "3")
 
 	new iTempPointer
 	iTempPointer = get_cvar_pointer("sv_gravity")
@@ -123,10 +137,21 @@ public plugin_precache()
 // Reset Vars, Update Stats
 public client_putinserver(id)
 {
+	SetDefaultCatchSettings(id)
+
 	g_bSpeedOn[id] = true
 	g_iPlayerStats[id][0] = 0
 	g_iPlayerStats[id][1] = 0
 	set_task(0.5, "UpdateStats", id)
+}
+
+SetDefaultCatchSettings(id)
+{
+	client_cmd_ex(id, "cl_forwardspeed 9999")
+	client_cmd_ex(id, "cl_sidespeed 9999")
+	client_cmd_ex(id, "cl_backspeed 9999")
+	client_cmd_ex(id, "fps_max 100")
+	client_cmd_ex(id, "fps_override 0")
 }
 
 // Think
@@ -190,7 +215,11 @@ public OnPlayerJump(id)
 		{
 			g_iWallTouches[id] = get_pcvar_num(g_iCvarTouches) // wall jump, cuz he is not in bhop
 		}
+
+		return HC_SUPERCEDE
 	}
+
+	return HC_CONTINUE
 }
 
 // Touch Wall
@@ -579,17 +608,6 @@ public SpeedEntityThink()
 	set_entvar(g_iHud[HudSpeedEnt][TaskEntity], var_nextthink, get_gametime() + 0.1)
 }
 
-// Natives
-public plugin_natives()
-{
-	register_native("catch_get_user_team", "_native_get_user_team")
-}
-
-public Teams:_native_get_user_team()
-{
-	return g_iPlayerTeams[get_param(1)]
-}
-
 // Restrictions, models and physics
 public OnPlayerResetMaxSpeed(id)
 {
@@ -616,26 +634,23 @@ public OnPlayerSpawn(id)
 		rg_give_item(id, "weapon_knife")
 	}
 
-	set_entvar(id, var_renderfx, kRenderFxGlowShell)
-
-	if (g_iPlayerTeams[id] == FLEER)
+	switch(g_iPlayerTeams[id])
 	{
-		g_iTurbo[id] = get_pcvar_num(g_iCvarTurbo)
+		case FLEER:
+		{
+			g_iTurbo[id] = get_pcvar_num(g_iCvarTurbo)
+		}
 
-		set_entvar(id, var_rendercolor, {0.0, 255.0, 0.0})
-	}
-	else if (g_iPlayerTeams[id] == CATCHER)
-	{
-		g_iTurbo[id] = -1
+		case CATCHER, NONE:
+		{
+			g_iTurbo[id] = -1
+		}
 
-		set_entvar(id, var_rendercolor, {255.0, 0.0, 0.0})
+		case TRAINING:
+		{
+			g_iTurbo[id] = 100
+		}
 	}
-	else
-	{
-		set_entvar(id, var_rendercolor, {0.0, 0.0, 255.0})
-	}
-
-	set_entvar(id, var_renderamt, 25.0)
 
 	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarSpeed)
 
@@ -651,4 +666,34 @@ public ReapiSupercedeHandler()
 public HamSupercedeHandler()
 {
 	return HAM_SUPERCEDE
+}
+
+// Stocks
+stock client_cmd_ex(id, const szText[], any:...)
+{
+	#pragma unused szText
+	
+	if (id == 0 || is_user_connected(id))
+	{
+		new szMessage[256]
+		
+		format_args(szMessage, charsmax(szMessage), 1)
+		
+		message_begin(id == 0 ? MSG_ALL : MSG_ONE, 51, _, id)
+		write_byte(strlen(szMessage) + 2)
+		write_byte(10)
+		write_string(szMessage)
+		message_end()
+	}
+}
+
+// Natives
+public plugin_natives()
+{
+	register_native("catchmod_get_user_team", "_native_get_user_team")
+}
+
+public Teams:_native_get_user_team()
+{
+	return g_iPlayerTeams[get_param(1)]
 }

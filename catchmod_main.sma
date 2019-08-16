@@ -12,6 +12,7 @@
 #include <catch_const>
 #include <cromchat>
 
+// Defines
 #define MAXPLAYERSVAR MAX_PLAYERS + 1
 #define SEMICLIP_DISTANCE 260.0
 
@@ -22,7 +23,6 @@ new bool:g_bTrainingOn
 new Teams:g_iTeams[5]
 new g_iLastWinner
 new bool:g_bCanKill
-new bool:g_bGameCommencing
 // Player Vars
 new Teams:g_iPlayerTeams[MAXPLAYERSVAR]
 new g_iPlayerStats[MAXPLAYERSVAR][2]
@@ -82,6 +82,8 @@ public plugin_init()
 	register_forward(FM_AddToFullPack, "FM__AddToFullPack_Pre")
 	register_message(get_user_msgid("TextMsg"), "TextMsgHook")
 	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
+	register_logevent("OnFirstRound", 2, "0=World triggered", "1&Restart_Round_")
+	register_logevent("OnFirstRound", 2, "0=World triggered", "1=Game_Commencing")
 
 	// Hud
 	for (new i; i < sizeof(g_iHud); i++)
@@ -163,7 +165,7 @@ public OnPlayerThink(id)
 	iButtons = get_entvar(id, var_button)
 	iOldButtons = get_entvar(id, var_oldbuttons)
 
-	if (iButtons & IN_ATTACK2 && ~iOldButtons & IN_ATTACK2)
+	if (iButtons & IN_ATTACK2 && !task_exists(id + 2000))
 	{
 		TurboOn(id)
 	}
@@ -188,7 +190,7 @@ public OnPlayerThink(id)
 	SemiClipPreThink(id)
 }
 
-public OnPlayerThinkPost(id)
+public OnPlayerThinkPost()
 {
 	SemiClipPostThink()
 }
@@ -296,30 +298,28 @@ public TextMsgHook(iMsgID, iMsgDest, id)
 
 		UpdateHud(id) // updating hud
 		UpdateStats(id) // updating stats
-
-		if (!g_bGameCommencing)
-		{
-			g_bGameCommencing = true // setting commencing true
-		} 
 	}
 
 	return PLUGIN_HANDLED
 }
 
+public OnFirstRound()
+{
+	if (g_bTrainingOn) // if training on
+	{
+		return PLUGIN_CONTINUE // return
+	}
+
+	// setting the default teams
+	g_iTeams[1] = FLEER
+	g_iTeams[2] = CATCHER
+
+	return PLUGIN_CONTINUE // return
+}
+
 // Round End
 public OnRoundEnd()
 {
-	if (g_bGameCommencing && !g_bTrainingOn)
-	{
-		// Setting default teams
-		g_iTeams[1] = CATCHER
-		g_iTeams[2] = FLEER
-
-		// resetting commencing
-		g_bGameCommencing = false
-		return
-	}
-
 	if (g_bTrainingOn) // if is train
 	{
 		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_DRAW) // Setting draw so no one of the teams wins
@@ -463,7 +463,7 @@ TurboOn(id)
 	g_bTurboOn[id] = true
 	UpdateHud(id)
 
-	set_task(0.9, "TurboOff", id + 2000)
+	set_task(1.0, "TurboOff", id + 2000)
 }
 
 public TurboOff(id)

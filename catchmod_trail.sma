@@ -118,7 +118,7 @@ public plugin_init()
 {
 	register_plugin("Catch Mod: Trails", CATCHMOD_VER, "mi0")
 	RegisterHookChain(RG_CBasePlayer_PreThink, "OnPlayerPreThink")
-	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn")
+	register_event("ResetHUD", "OnPlayerHudReset", "b")
 
 	register_clcmd("say /trails", "cmd_trails")
 	register_clcmd("CT_CUSTOM_COLOR", "cmd_custom_color")
@@ -452,7 +452,7 @@ public TypesMenu_Handler(id, iMenu, iItem)
 	return PLUGIN_HANDLED
 }
 
-public OnPlayerSpawn(id)
+public OnPlayerHudReset(id)
 {
 	if (g_eUserSettings[id][TrailOn])
 	{

@@ -70,6 +70,7 @@ public plugin_init()
 	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "OnPlayerResetMaxSpeed", 1)
 	RegisterHookChain(RG_CBasePlayer_TakeDamage, "OnTakeDamage")
 	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn", 1)
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawnPre")
 	RegisterHookChain(RG_RoundEnd, "OnRoundEnd", 1)
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnNewRound", 1)
 	RegisterHookChain(RG_CBasePlayer_Jump, "OnPlayerJump")
@@ -244,7 +245,7 @@ public OnPlayerTouchPlayer(iToucher, iTouched)
 
 	if (!is_user_alive(iTouched) || !is_user_alive(iToucher) || g_bTrainingOn || !g_bCanKill || get_member(iToucher, m_iTeam) == get_member(iTouched, m_iTeam))
 	{
-		return // if they cant kill each other
+		return PLUGIN_CONTINUE// if they cant kill each other
 	}
 	
 	// Who's the killer
@@ -270,6 +271,8 @@ public OnPlayerTouchPlayer(iToucher, iTouched)
 	g_iPlayerStats[iVictim][1]++ // adding deaths to the victim
 	UpdateStats(iKiller) // updating killer's stats
 	UpdateStats(iVictim) // updating victim's stats
+
+	return PLUGIN_HANDLED
 }
 
 // Eound end & game commencing
@@ -623,11 +626,14 @@ public OnTakeDamage()
 	SetHookChainArg(4, ATYPE_FLOAT, 0.0)
 }
 
+public OnPlayerSpawnPre(id)
+{
+	g_iPlayerTeams[id] = g_iTeams[get_member(id, m_iTeam)]
+}
+
 public OnPlayerSpawn(id)
 {
 	new iTeam = get_member(id, m_iTeam)
-
-	g_iPlayerTeams[id] = g_iTeams[iTeam]
 
 	if (1 <= iTeam <= 2)
 	{

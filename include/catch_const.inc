@@ -16,8 +16,8 @@ enum Teams
 
 new g_szTeamsNames[Teams][32] =
 {
-	"None",
 	"Fleer",
 	"Catcher",
-	"Training"
+	"Training",
+	"None"
 }

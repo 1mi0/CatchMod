@@ -1,7 +1,6 @@
 #include <amxmodx>
 #include <amxmisc>
 #include <reapi>
-#include <cromchat>
 #include <catchmod>
 
 //TODO:
@@ -92,9 +91,17 @@ enum _:TrailsSettings
 	AdminFlags,
 	TrailLife,
 	CustomColorFlags,
-	TrailModeAdd
+	TrailModeAdd,
+	Sprite,
+	SpriteSize,
+	SpriteBrightness,
+	SpriteOffset[2],
+	SpriteModel
 }
 new g_eTeamsColors[Teams][3]
+
+new Float:g_fOldTime[33]
+new Float:g_fOldOrigin[33][3]
 
 new Array:g_aColorsArray
 new Array:g_aTypesArray
@@ -110,8 +117,8 @@ new g_iTypesMenu
 public plugin_init()
 {
 	register_plugin("Catch Mod: Trails", CATCHMOD_VER, "mi0")
-
-	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn", 1)
+	RegisterHookChain(RG_CBasePlayer_PreThink, "OnPlayerPreThink")
+	RegisterHookChain(RG_CBasePlayer_Spawn, "OnPlayerSpawn")
 
 	register_clcmd("say /trails", "cmd_trails")
 	register_clcmd("CT_CUSTOM_COLOR", "cmd_custom_color")
@@ -233,13 +240,6 @@ LoadFile()
 					{
 						g_eTrailsSettings[CustomColorFlags] = read_flags(szValue)
 					}
-					else if (equali(szKey, "CHAT_PREFIX"))
-					{
-						if (szValue[0] != EOS)
-						{
-							CC_SetPrefix(szValue)
-						}
-					}
 					else if (equali(szKey, "FLEER_COLOR") || equali(szKey, "CATCHER_COLOR") || equali(szKey, "TRAINING_COLOR") || equali(szKey, "NONE_COLOR"))
 					{
 						parse(szValue, szParsedColor[0], charsmax(szParsedColor[]), szParsedColor[1], charsmax(szParsedColor[]), szParsedColor[2], charsmax(szParsedColor[]))
@@ -270,6 +270,30 @@ LoadFile()
 						g_eTeamsColors[iTeam][0] = str_to_num(szParsedColor[0])
 						g_eTeamsColors[iTeam][1] = str_to_num(szParsedColor[1])
 						g_eTeamsColors[iTeam][2] = str_to_num(szParsedColor[2])
+					}
+					else if (equali(szKey, "TRAIL_SPRITE"))
+					{
+						g_eTrailsSettings[Sprite] = str_to_num(szValue)
+						switch (g_eTrailsSettings[Sprite])
+						{
+							case 0:
+							{
+								g_eTrailsSettings[SpriteModel] = precache_model("sprites/xsmoke4.spr")
+								g_eTrailsSettings[SpriteSize] = 5
+								g_eTrailsSettings[SpriteBrightness] = 160
+								g_eTrailsSettings[SpriteOffset][0] = -5
+								g_eTrailsSettings[SpriteOffset][1] = 33
+							}
+
+							case 1:
+							{
+								g_eTrailsSettings[SpriteModel] = precache_model("sprites/flame.spr")
+								g_eTrailsSettings[SpriteSize] = 1
+								g_eTrailsSettings[SpriteBrightness] = 255
+								g_eTrailsSettings[SpriteOffset][0] = -6
+								g_eTrailsSettings[SpriteOffset][1] = 30
+							}
+						}
 					}
 				}
 			}
@@ -388,7 +412,6 @@ public ColorsMenu_Handler(id, iMenu, iItem)
 	g_eUserSettings[id][TrailOn] = true
 
 	UpdateUserTrail(id)
-	client_print_color(id, id, "You successfuly set your color to ^x03%s", eTempArray[Name])
 
 	menu_cancel(id)
 	OpenTrailMenu(id)
@@ -423,7 +446,6 @@ public TypesMenu_Handler(id, iMenu, iItem)
 
 	new eTempArray[TrailTypeData]
 	ArrayGetArray(g_aTypesArray, iItem, eTempArray)
-	client_print_color(id, id, "You successfuly set your type to ^x03%s", eTempArray[Name])
 
 	menu_cancel(id)
 	OpenTrailMenu(id)
@@ -438,14 +460,16 @@ public OnPlayerSpawn(id)
 	}
 
 	new Teams:iPlayerTeam = catchmod_get_user_team(id)
+	new Float:fColors[3]
 
 	copy(g_eUserSettings[id][TrailColors], 3, g_eTeamsColors[iPlayerTeam])
+	fColors[0] = float(g_eTeamsColors[iPlayerTeam][0])
+	fColors[1] = float(g_eTeamsColors[iPlayerTeam][1])
+	fColors[2] = float(g_eTeamsColors[iPlayerTeam][2])
 
 	set_entvar(id, var_renderfx, kRenderFxGlowShell)
-	set_entvar(id, var_rendercolor, g_eTeamsColors[iPlayerTeam])
+	set_entvar(id, var_rendercolor, fColors)
 	set_entvar(id, var_renderamt, 25.0)
-
-	CC_SendMatched(id, id, "Your Trail colors and Render colors are set to %s", g_szTeamsNames[iPlayerTeam])
 
 	UpdateUserTrail(id)
 
@@ -496,6 +520,58 @@ checkUserTrail(id)
 	}
 }
 
+public OnPlayerPreThink(id)
+{
+	if (!is_user_alive(id))
+	{
+		return HC_CONTINUE
+	}
+
+	new Float:fGameTime = get_gametime()
+	if (fGameTime < g_fOldTime[id])
+	{
+		return HC_CONTINUE
+	}
+
+	new Float:fOrigin[3]
+	get_entvar(id, var_origin, fOrigin)
+	if (get_distance_f(g_fOldOrigin[id], fOrigin) == 0)
+	{
+		return HC_CONTINUE
+	}
+
+	g_fOldTime[id] = fGameTime + 0.1
+	g_fOldOrigin[id][0] = fOrigin[0]
+	g_fOldOrigin[id][1] = fOrigin[1]
+	g_fOldOrigin[id][2] = fOrigin[2]
+	makeSpriteTrails(id)
+
+	return HC_CONTINUE
+}
+
+makeSpriteTrails(id)
+{
+	new iFlags = get_entvar(id, var_flags)
+	if (~iFlags & FL_ONGROUND)
+	{
+		return
+	}
+
+	new iOrigin[3]
+	get_user_origin(id, iOrigin)
+	iOrigin[2] -= (iFlags & FL_DUCKING) ? g_eTrailsSettings[SpriteOffset][0] : g_eTrailsSettings[SpriteOffset][1] 
+
+	message_begin(MSG_BROADCAST ,SVC_TEMPENTITY)
+	write_byte(TE_SPRITE)
+	write_coord(iOrigin[0])
+	write_coord(iOrigin[1])
+	write_coord(iOrigin[2])
+	write_short(g_eTrailsSettings[SpriteModel])
+	write_byte(g_eTrailsSettings[SpriteSize])
+	write_byte(g_eTrailsSettings[SpriteBrightness])
+	message_end()
+}
+
 public cmd_trails(id)
 {
 	if (!is_user_connected(id))
@@ -505,7 +581,6 @@ public cmd_trails(id)
 
 	if (~get_user_flags(id) & g_eTrailsSettings[AdminFlags])
 	{
-		CC_SendMatched(id, id, "You must be ^x04Vip ^x01 to use the ^x03Colorful Trails")
 		return PLUGIN_HANDLED
 	}
 
@@ -539,7 +614,6 @@ public cmd_custom_color(id)
 	g_eUserSettings[id][TrailOn] = true
 
 	UpdateUserTrail(id)
-	CC_SendMatched(id, id, "You successfuly set custom color - ^"%i %i %i^"", g_eUserSettings[id][TrailColors][0], g_eUserSettings[id][TrailColors][1], g_eUserSettings[id][TrailColors][2])
 	OpenTrailMenu(id)
 
 	return PLUGIN_HANDLED

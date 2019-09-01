@@ -3,54 +3,8 @@
 #include <reapi>
 #include <catchmod>
 
-//TODO:
-/*
-	new sprite = get_pcvar_num(g_model)
-	message_begin(0, 23, 812, 0)
-	write_byte(17)
-	write_coord(g_lorigin[id][0])
-	write_coord(g_lorigin[id][1])
-	new var1
-	if (sprite)
-	{
-		var1 = g_offset[id][1]
-	}
-	else
-	{
-		var1 = g_offset[id][0]
-	}
-	write_coord(g_lorigin[id][2] - var1)
-	new var2
-	if (sprite)
-	{
-		var2 = g_fire
-	}
-	else
-	{
-		var2 = g_sprite
-	}
-	write_short(var2)
-	new var3
-	if (sprite)
-	{
-		var3 = g_size[1]
-	}
-	else
-	{
-		var3 = g_size[0]
-	}
-	write_byte(var3)
-	new var4
-	if (sprite)
-	{
-		var4 = g_brightness[1]
-	}
-	else
-	{
-		var4 = g_brightness[0]
-	}
-	write_byte(var4)
-	message_end()*/
+#define TASKID 1000
+//#define DEBUG
 
 enum Sections
 {
@@ -454,26 +408,67 @@ public TypesMenu_Handler(id, iMenu, iItem)
 
 public OnPlayerHudReset(id)
 {
-	if (g_eUserSettings[id][TrailOn])
+	new iTaskID = id + TASKID
+	if (task_exists(iTaskID))
 	{
-		return HC_CONTINUE
+		remove_task(iTaskID)
 	}
 
-	new Teams:iPlayerTeam = catchmod_get_user_team(id)
-	new Float:fColors[3]
+	set_task_ex(1.0, "task_PreApply", iTaskID)
+	return HC_CONTINUE
+}
 
-	copy(g_eUserSettings[id][TrailColors], 3, g_eTeamsColors[iPlayerTeam])
-	fColors[0] = float(g_eTeamsColors[iPlayerTeam][0])
-	fColors[1] = float(g_eTeamsColors[iPlayerTeam][1])
-	fColors[2] = float(g_eTeamsColors[iPlayerTeam][2])
+public task_PreApply(iTaskID)
+{
+	new id = iTaskID - TASKID
 
-	set_entvar(id, var_renderfx, kRenderFxGlowShell)
-	set_entvar(id, var_rendercolor, fColors)
-	set_entvar(id, var_renderamt, 25.0)
+	#if defined DEBUG
+	client_print_color(id, id, "^x04[DEBUG]^x01 Function - PreApply")
+	client_print_color(id, id, "^x04---------------------------")
+	#endif
+
+	if (!g_eUserSettings[id][TrailOn])
+	{
+		new Teams:iPlayerTeam = catchmod_get_user_team(id)
+		new Float:fColors[3]
+
+		g_eUserSettings[id][TrailColors][0] = g_eTeamsColors[iPlayerTeam][0]
+		g_eUserSettings[id][TrailColors][1] = g_eTeamsColors[iPlayerTeam][1]
+		g_eUserSettings[id][TrailColors][2] = g_eTeamsColors[iPlayerTeam][2]
+		fColors[0] = float(g_eTeamsColors[iPlayerTeam][0])
+		fColors[1] = float(g_eTeamsColors[iPlayerTeam][1])
+		fColors[2] = float(g_eTeamsColors[iPlayerTeam][2])
+
+		set_entvar(id, var_renderfx, kRenderFxGlowShell)
+		set_entvar(id, var_rendercolor, fColors)
+		set_entvar(id, var_renderamt, 25.0)
+
+		#if defined DEBUG
+		client_print_color(id, id, "Teams - %i %i %i", g_eTeamsColors[iPlayerTeam][0], g_eTeamsColors[iPlayerTeam][1], g_eTeamsColors[iPlayerTeam][2])
+		client_print_color(id, id, "User - %i %i %i", g_eUserSettings[id][TrailColors][0], g_eUserSettings[id][TrailColors][1], g_eUserSettings[id][TrailColors][2])
+		client_print_color(id, id, "Floats - %f %f %f", fColors[0], fColors[1], fColors[2])
+		#endif
+	}
+	#if defined DEBUG
+	else
+	{
+		client_print_color(id, id, "Function Cutted")
+	}
+	client_print_color(id, id, "^x04---------------------------")
+	#endif
 
 	UpdateUserTrail(id)
+	set_task_ex(10.0, "task_Apply", id + TASKID, .flags = SetTask_Repeat)
+}
 
-	return HC_CONTINUE
+public task_Apply(iTaskID)
+{
+	new id = iTaskID - TASKID
+	UpdateUserTrail(id)
+
+	#if defined DEBUG
+	client_print_color(id, id, "^x04[DEBUG]^x01 Function - Apply")
+	#endif
 }
 
 UpdateUserTrail(id)

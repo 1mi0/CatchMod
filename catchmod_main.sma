@@ -176,6 +176,10 @@ public OnPlayerThink(id)
 	}
 
 	// Wall Touch
+	if (get_entvar(id, var_flags) & FL_ONGROUND && g_iWallTouches[id] != get_pcvar_num(g_iCvarTouches))
+	{
+		g_iWallTouches[id] = get_pcvar_num(g_iCvarTouches)
+	}
 
 	if (g_bJump[id])
 	{
@@ -604,7 +608,7 @@ public SpeedEntityThink()
 		fSpeed = vector_length(fVelocity)
 		f2dmSpeed = floatsqroot(fVelocity[0] * fVelocity[0] + fVelocity[1] * fVelocity[1])
 		
-		set_hudmessage(255, 255, 255, -1.0, 0.7, 0, 0.0, 0.2, 0.01, 0.0)
+		set_hudmessage(255, 0, 0, -1.0, 0.7, 0, 0.0, 0.2, 0.01, 0.0)
 		ShowSyncHudMsg(i, g_iHud[HudSpeedEnt][HudSync], "%3.2f units/second^n%3.2f velocity", fSpeed, f2dmSpeed)
 	}
 
@@ -660,7 +664,7 @@ public OnPlayerSpawn(id)
 
 	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarSpeed)
 
-	UpdateHud(id)
+	set_entvar(g_iHud[HudStatusEnt][TaskEntity], var_nextthink, get_gametime() + 0.5)
 }
 
 // Stopping some functions

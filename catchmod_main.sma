@@ -201,10 +201,8 @@ SetDefaultCatchSettings(id)
 public OnPlayerThink(id)
 {
 	// Turbo
-
-	static iButtons, iOldButtons
-	iButtons = get_entvar(id, var_button)
-	iOldButtons = get_entvar(id, var_oldbuttons)
+	new iButtons = get_entvar(id, var_button)
+	new iOldButtons = get_entvar(id, var_oldbuttons)
 
 	if (iButtons & IN_ATTACK2 && !task_exists(id + 2000))
 	{

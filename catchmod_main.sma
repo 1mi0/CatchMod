@@ -544,7 +544,7 @@ SemiClipFirstThink()
 
 SemiClipPreThink(id)
 {
-	static i, LastThink
+	new LastThink
 	
 	if (LastThink > id)
 	{
@@ -558,22 +558,23 @@ SemiClipPreThink(id)
 		return FMRES_IGNORED
 	}
 	
+	new iTarget
 	new iPlayers[MAX_PLAYERS], iNum
 	get_players_ex(iPlayers, iNum, GetPlayers_ExcludeDead)
 
 	for (--iNum; iNum >= 0; iNum--)
 	{
-		i = iPlayers[iNum]
+		iTarget = iPlayers[iNum]
 
-		if (!g_bSolid[i] || id == i)
+		if (!g_bSolid[iTarget] || id == iTarget)
 		{
 			continue
 		}
 
-		if (g_iPlayerTeams[i] == g_iPlayerTeams[id])
+		if (g_iPlayerTeams[iTarget] == g_iPlayerTeams[id])
 		{
-			set_pev(i, pev_solid, SOLID_NOT)
-			g_bHasSemiclip[i] = true
+			set_pev(iTarget, pev_solid, SOLID_NOT)
+			g_bHasSemiclip[iTarget] = true
 		}
 	}
 	

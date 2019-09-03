@@ -1,19 +1,20 @@
 // Defaults
 #include <amxmodx>
-// #include <amxmisc>
+#include <amxmisc>
 
 // Modules
 // #include <cstrike>
-// #include <reapi>
+#include <reapi>
 // #include <engine>
 // #include <fakemeta>
 // #include <hamsandwich>
 // #include <fun>
 // #include <xs>
 // #include <sqlx>
+#include <nvault>
 
 // 3rd Part
-// Add your code here...
+#include <catch_const>
 
 // mi0 utils
 // #define UTIL_FADEEFFECT
@@ -30,7 +31,9 @@
 #define VERSION CATCHMOD_VER
 #define AUTHOR  "mi0"
 
-#define MAXPLAYERSVAR MAX_PLAYERS + 1
+#define MAXPLAYERSVAR MAX_PLAYERS+1
+
+#define VAULT_NAME "CatchMod_RankVault"
 
 // Enums
 enum CfgSections
@@ -40,7 +43,7 @@ enum CfgSections
 	SectionLevels
 }
 
-enum _:LevelInfo
+enum _:LevelData
 {
 	LevelName[64],
 	LevelColor[64],
@@ -49,26 +52,50 @@ enum _:LevelInfo
 }
 
 // Global Vars
-new g_iPlayersXP[MAXPLAYERSVAR], g_iPlayerLevel[MAXPLAYERSVAR]
+new g_iPlayersXP[MAXPLAYERSVAR], g_iPlayersLevels[MAXPLAYERSVAR]
 new g_iLevels, Array:g_aLevels
+new g_iVaultHandle
 
 // Plugin forwards
 public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR)
-	
-	// Add your code here...
 }
 
 public plugin_cfg()
 {
-	g_aLevels = ArrayCreate(LevelInfo)
+	g_iVaultHandle = nvault_open(VAULT_NAME)
+	if (g_iVaultHandle == INVALID_HANDLE)
+	{
+		set_fail_state("Cannot open vault(%s)", VAULT_NAME)
+	}
+
+	g_aLevels = ArrayCreate(LevelData)
 	LoadCfg()
 }
 
 public plugin_end()
 {
 	ArrayDestroy(g_aLevels)
+	nvault_close(g_iVaultHandle)
+}
+
+public client_connectex(id)
+{
+	if ((g_iPlayersXP[id] = NVault_ParsePlayer(id)))
+	{
+		Player_CheckLevel(id)
+	}
+}
+
+public client_disconnected(id)
+{
+	if (g_iPlayersLevels[id] > 0)
+	{
+		NVault_ParsePlayer(id, true)
+	}
+	g_iPlayersLevels[id] = 0
+	g_iPlayersXP[id] = 0
 }
 
 // Cmds
@@ -78,6 +105,114 @@ public plugin_end()
 // Add your code here...
 
 // Custom Functions
+bool:Player_UpdateXP(id, iAmount, bool:bDecreasing = false)
+{
+	if (!is_user_connected(id) || iAmount == 0)
+	{
+		return false
+	}
+
+	new iNewXP
+	switch(bDecreasing)
+	{
+		case true:
+		{
+			iNewXP = g_iPlayersXP[id] - iAmount
+		}
+
+		case false:
+		{
+			iNewXP = g_iPlayersXP[id] + iAmount
+		}
+	}
+
+	g_iPlayersXP[id] = iNewXP < 0 ? 0 : iNewXP
+
+	Player_UpdateLevel(id, bDecreasing) 
+	return true
+}
+
+bool:Player_UpdateLevel(id, bool:bDecreasing = false)
+{
+	new bool:bRetVal
+	new iLevel = g_iPlayersLevels[id]
+	new iXP = g_iPlayersXP[id]
+	new eTempArray[LevelData]
+	ArrayGetArray(g_aLevels, iLevel, eTempArray)
+
+	switch(bDecreasing)
+	{
+		case true:
+		{
+			while (iXP < eTempArray[LevelXP])
+			{
+				ArrayGetArray(g_aLevels, --iLevel, eTempArray)
+			}
+			bRetVal = (iLevel < g_iPlayersLevels[id])
+		}
+
+		case false:
+		{
+			while (iXP > eTempArray[LevelXP])
+			{
+				ArrayGetArray(g_aLevels, ++iLevel, eTempArray)
+			}
+			bRetVal = (iLevel > g_iPlayersLevels[id])
+		}
+	}
+
+	g_iPlayerLevel[id] = iLevel
+	return bRetVal
+}
+
+Player_CheckLevel(id)
+{
+	new iLevel
+	new iXP = g_iPlayersXP[id]
+	new eTempArray[LevelData]
+	ArrayGetArray(g_aLevels, iLevel, eTempArray)
+
+	while (iXP > eTempArray[LevelXP])
+	{
+		ArrayGetArray(g_aLevels, ++iLevel, eTempArray)
+	}
+	g_iPlayersLevels[id] = iLevel
+}
+
+NVault_ParsePlayer(id, bool:bSave = false)
+{
+	new szKey[32]
+	switch (is_user_steam(id))
+	{
+		case true:
+		{
+			get_user_authid(id, szKey, charsmax(szKey))
+		}
+
+		case false:
+		{
+			get_user_name(id, szKey, charsmax(szKey))
+		}
+	}
+
+	switch(bSave)
+	{
+		case true:
+		{
+			new szInfo[32]
+			formatex(szInfo, charsmax(szInfo), "%i", g_iPlayersXP[id])
+			nvault_set(g_iVaultHandle, szKey, szInfo)
+		}
+
+		case false:
+		{
+			return nvault_get(g_iVaultHandle, szKey)
+		}
+	}
+
+	return 0
+}
+
 LoadCfg()
 {
 	new szFileDir[128]
@@ -89,7 +224,7 @@ LoadCfg()
 	{
 		new szLine[256], CfgSections:iSection
 		new szKey[32], szValue[32]
-		new eTempArray[LevelInfo]
+		new eTempArray[LevelData], iParsed, iBadLoaded
 
 		while (!feof(iFile))
 		{
@@ -119,7 +254,6 @@ LoadCfg()
 						iSection = SectionNone
 					}
 				}
-
 				continue
 			}
 
@@ -127,19 +261,23 @@ LoadCfg()
 			{
 				case SectionSettings:
 				{
-					strtok(szLine, szKey, charsmax(szKey), szValue, charsmax(szValue), "=")
-					trim(szKey)
-					trim(szValue)
+					strtok2(szLine, szKey, charsmax(szKey), szValue, charsmax(szValue), '=', 1)
 
 
 				}
 
 				case SectionLevels:
 				{
-					parse(szLine, eTempArray[LevelName], charsmax(eTempArray[LevelName]), 
+					iParsed = parse(szLine, eTempArray[LevelName], charsmax(eTempArray[LevelName]), 
 						eTempArray[LevelColor], charsmax(eTempArray[LevelColor]), 
 						szValue, charsmax(szValue), 
 						eTempArray[LevelInfo], charsmax(eTempArray[LevelInfo]))
+
+					if (iParsed < 4)
+					{
+						iBadLoaded++
+						continue
+					}
 
 					eTempArray[LevelXP] = str_to_num(szValue)
 
@@ -148,6 +286,8 @@ LoadCfg()
 				}
 			}
 		}
+
+		server_print("Catch Mod >> Loaded %i ranks %i Successful %i Bad!", g_iLevels + iBadLoaded, g_iLevels, iBadLoaded)
 	}
 }
 

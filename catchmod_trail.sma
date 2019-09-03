@@ -422,39 +422,40 @@ public task_PreApply(iTaskID)
 {
 	new id = iTaskID - TASKID
 
+	new Teams:iPlayerTeam = catchmod_get_user_team(id)
+	new Float:fColors[3]
+
+	fColors[0] = float(g_eTeamsColors[iPlayerTeam][0])
+	fColors[1] = float(g_eTeamsColors[iPlayerTeam][1])
+	fColors[2] = float(g_eTeamsColors[iPlayerTeam][2])
+
+	set_entvar(id, var_renderfx, kRenderFxGlowShell)
+	set_entvar(id, var_rendercolor, fColors)
+	set_entvar(id, var_renderamt, 25.0)
+
 	#if defined DEBUG
 	client_print_color(id, id, "^x04[DEBUG]^x01 Function - PreApply")
 	client_print_color(id, id, "^x04---------------------------")
+	client_print_color(id, id, "Teams - %i %i %i", g_eTeamsColors[iPlayerTeam][0], g_eTeamsColors[iPlayerTeam][1], g_eTeamsColors[iPlayerTeam][2])
 	#endif
 
 	if (!g_eUserSettings[id][TrailOn])
 	{
-		new Teams:iPlayerTeam = catchmod_get_user_team(id)
-		new Float:fColors[3]
-
 		g_eUserSettings[id][TrailColors][0] = g_eTeamsColors[iPlayerTeam][0]
 		g_eUserSettings[id][TrailColors][1] = g_eTeamsColors[iPlayerTeam][1]
 		g_eUserSettings[id][TrailColors][2] = g_eTeamsColors[iPlayerTeam][2]
-		fColors[0] = float(g_eTeamsColors[iPlayerTeam][0])
-		fColors[1] = float(g_eTeamsColors[iPlayerTeam][1])
-		fColors[2] = float(g_eTeamsColors[iPlayerTeam][2])
-
-		set_entvar(id, var_renderfx, kRenderFxGlowShell)
-		set_entvar(id, var_rendercolor, fColors)
-		set_entvar(id, var_renderamt, 25.0)
-
-		#if defined DEBUG
-		client_print_color(id, id, "Teams - %i %i %i", g_eTeamsColors[iPlayerTeam][0], g_eTeamsColors[iPlayerTeam][1], g_eTeamsColors[iPlayerTeam][2])
-		client_print_color(id, id, "User - %i %i %i", g_eUserSettings[id][TrailColors][0], g_eUserSettings[id][TrailColors][1], g_eUserSettings[id][TrailColors][2])
-		client_print_color(id, id, "Floats - %f %f %f", fColors[0], fColors[1], fColors[2])
-		#endif
-	}
 	#if defined DEBUG
+
+	client_print_color(id, id, "User - %i %i %i", g_eUserSettings[id][TrailColors][0], g_eUserSettings[id][TrailColors][1], g_eUserSettings[id][TrailColors][2])
+	}
 	else
 	{
-		client_print_color(id, id, "Function Cutted")
+		client_print_color(id, id, "User - Function Cutted")
 	}
+	client_print_color(id, id, "Floats - %f %f %f", fColors[0], fColors[1], fColors[2])
 	client_print_color(id, id, "^x04---------------------------")
+	#else
+	}
 	#endif
 
 	UpdateUserTrail(id)

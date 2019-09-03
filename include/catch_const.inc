@@ -3,7 +3,7 @@
 #endif
 #define _catch_const_included
 
-#define CATCHMOD_VER "4.0.1-ReAPI"
+#define CATCHMOD_VER "4.0.3-ReAPI"
 #define VALID_PLAYER(%1) 1 <= %1 <= 32
 
 enum Teams

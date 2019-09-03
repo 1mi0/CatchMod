@@ -16,8 +16,13 @@
 #define MAXPLAYERSVAR MAX_PLAYERS + 1
 #define SEMICLIP_DISTANCE 260.0
 
+// mi0 UTILS
+#define UTIL_KUR print_chat
+#include <mi0_utils>
+
 // Cvars
 new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed, g_iCvarTouches
+new g_pCvarRoundTime, g_pCvarRoundRestart, g_pCvarForceRespawn
 // Vars
 new bool:g_bTrainingOn
 new Teams:g_iTeams[5]
@@ -65,6 +70,9 @@ public plugin_init()
 	set_pcvar_num(iTempPointer, 600)
 	iTempPointer = get_cvar_pointer("sv_airaccelerate")
 	set_pcvar_num(iTempPointer, 100)
+	g_pCvarRoundTime = get_cvar_pointer("mp_roundtime")
+	g_pCvarRoundRestart = get_cvar_pointer("sv_restartround")
+	g_pCvarForceRespawn = get_cvar_pointer("mp_forcerespawn")
 
 	// Hooks
 	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "OnPlayerResetMaxSpeed", 1)
@@ -107,9 +115,11 @@ public plugin_init()
 	RegisterHookChain(RG_CBasePlayer_OnSpawnEquip, "ReapiSupercedeHandler")
 	RegisterHookChain(RG_CSGameRules_GiveC4, "ReapiSupercedeHandler")
 	RegisterHookChain(RG_CBasePlayer_TraceAttack, "ReapiSupercedeHandler")
+	RegisterHookChain(RG_CBasePlayer_HasRestrictItem, "OnItemHasRestrict")
 
 	// Cmds
 	register_clcmd("say /speed", "cmd_speed")
+	register_concmd("amx_train", "cmd_train", ADMIN_RCON)
 
 	CC_SetPrefix("^4Catch Mod >>")
 }
@@ -119,6 +129,36 @@ public cmd_speed(id)
 {
 	g_bSpeedOn[id] = !g_bSpeedOn[id]
 	CC_SendMatched(id, id, "You successfuly turned your speed ^3%s^1!", g_bSpeedOn[id] ? "On" : "Off")
+
+	return PLUGIN_HANDLED
+}
+
+public cmd_train(id, level, cid)
+{
+	if (!cmd_access(id, level, cid, 1))
+	{
+		return PLUGIN_HANDLED
+	}
+
+	g_bTrainingOn = !g_bTrainingOn
+
+	new szName[32]
+	get_user_name(id, szName, charsmax(szName))
+
+	if (g_bTrainingOn)
+	{
+		set_pcvar_num(g_pCvarForceRespawn, 1)
+		set_pcvar_float(g_pCvarRoundTime, 8.0)
+		CC_SendMatched(0, id, "^3%s ^1pusna ^3Training ^1Mode-a!", szName)
+	}
+	else
+	{
+		set_pcvar_num(g_pCvarForceRespawn, 0)
+		set_pcvar_float(g_pCvarRoundTime, 1.5)
+		CC_SendMatched(0, id, "^3%s ^1sprq ^3Training ^1Mode-a!", szName)
+	}
+
+	set_pcvar_num(g_pCvarRoundRestart, 1)
 
 	return PLUGIN_HANDLED
 }
@@ -314,6 +354,8 @@ public OnFirstRound()
 {
 	if (g_bTrainingOn) // if training on
 	{
+		g_iTeams[1] = TRAINING
+		g_iTeams[2] = TRAINING
 		return PLUGIN_CONTINUE // return
 	}
 
@@ -466,7 +508,7 @@ TurboOn(id)
 
 	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarTurboSpeed)
 	set_entvar(id, var_maxspeed, g_fPlayerSpeed[id])
-	g_iTurbo[id] -= 10
+	g_iTurbo[id] = (g_iTurbo[id] == 10 && g_bTrainingOn) ? 100 : g_iTurbo[id] - 10
 	g_bTurboOn[id] = true
 	UpdateHud(id)
 
@@ -676,6 +718,19 @@ public ReapiSupercedeHandler()
 public HamSupercedeHandler()
 {
 	return HAM_SUPERCEDE
+}
+
+public OnItemHasRestrict(const id, const ItemID:item, const ItemRestType:type)
+{
+	if (type != ITEM_TYPE_BUYING)
+	{
+		return HC_CONTINUE
+	}
+
+	client_print(id, print_center, "Eeee shhh ne barai tam!")
+	UTIL_Kur(id)
+	SetHookChainReturn(ATYPE_BOOL, true)
+	return HC_SUPERCEDE
 }
 
 // Stocks

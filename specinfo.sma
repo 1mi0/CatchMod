@@ -144,7 +144,7 @@ Func_FormatButtons(id)
 {
 	new iButtons = get_entvar(id, var_button)
 
-	// definately didnt stole that HUH
+	// definately didnt steal that HUH
 	formatex(g_ePlayerSettings[id][KeysString], charsmax(g_ePlayerSettings[][KeysString]), "^n^t^t%s^t^t^t%s^n^t%s %s %s^t^t%s",
 			iButtons & IN_FORWARD ? "W" : " .",
 			iButtons & IN_JUMP ? "Jump" : "  -",

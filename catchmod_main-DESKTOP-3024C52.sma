@@ -7,10 +7,17 @@
 #include <reapi>
 #include <fakemeta>
 #include <engine>
+#include <fun>
 
 // 3rd part
 #include <catch_const>
 #include <cromchat>
+
+#define CATCH_SET_USER_FRAGS(%1,%2) set_user_frags(%1, %2)
+#define CATCH_GET_USER_FRAGS(%1) get_user_frags(%1)
+
+#define CATCH_SET_USER_DEATHS(%1,%2) set_member(%1, m_iDeaths, %2)
+#define CATCH_GET_USER_DEATHS(%1) set_member(%1, m_iDeaths)
 
 // Defines
 #define SEMICLIP_DISTANCE 260.0
@@ -21,15 +28,16 @@
 
 // Cvars
 new g_iCvarSpeed, g_iCvarTurbo, g_iCvarTurboSpeed, g_iCvarTouches
-new g_pCvarRoundTime, g_pCvarRoundRestart, g_pCvarForceRespawn
+new g_pCvarRoundEnd, g_pCvarRoundRestart, g_pCvarForceRespawn
 // Vars
 new bool:g_bTrainingOn
+new bool:g_bNewRound
 new Teams:g_iTeams[5]
 new g_iLastWinner
 new bool:g_bCanKill
 // Player Vars
+new bool:g_bCantBeSolid[MAXPLAYERSVAR]
 new Teams:g_iPlayerTeams[MAXPLAYERSVAR]
-new g_iPlayerStats[MAXPLAYERSVAR][2]
 new g_iTurbo[MAXPLAYERSVAR]
 new bool:g_bTurboOn[MAXPLAYERSVAR]
 new g_iTurboDefault[MAXPLAYERSVAR][4]
@@ -41,6 +49,8 @@ new bool:g_bJump[MAXPLAYERSVAR]
 new bool:g_bHasSemiclip[MAXPLAYERSVAR]
 new bool:g_bSolid[MAXPLAYERSVAR]
 new bool:g_bSpeedOn[MAXPLAYERSVAR]
+// Forwards
+new g_iFwd_RoundEnd
 // Hud
 enum _:HudEntities
 {
@@ -71,9 +81,11 @@ public plugin_init()
 	set_pcvar_num(iTempPointer, 600)
 	iTempPointer = get_cvar_pointer("sv_airaccelerate")
 	set_pcvar_num(iTempPointer, 100)
-	g_pCvarRoundTime = get_cvar_pointer("mp_roundtime")
+	g_pCvarRoundEnd = get_cvar_pointer("mp_round_infinite")
+	set_pcvar_num(g_pCvarRoundEnd, 0)
 	g_pCvarRoundRestart = get_cvar_pointer("sv_restartround")
 	g_pCvarForceRespawn = get_cvar_pointer("mp_forcerespawn")
+	set_pcvar_num(g_pCvarForceRespawn, 0)
 
 	// Hooks
 	RegisterHookChain(RG_CBasePlayer_ResetMaxSpeed, "OnPlayerResetMaxSpeed", 1)
@@ -83,6 +95,7 @@ public plugin_init()
 	RegisterHookChain(RG_RoundEnd, "OnRoundEnd", 1)
 	RegisterHookChain(RG_CSGameRules_RestartRound, "OnNewRound", 1)
 	RegisterHookChain(RG_CBasePlayer_Jump, "OnPlayerJump")
+	RegisterHookChain(RG_HandleMenu_ChooseTeam, "OnMenuChooseTeam", 1)
 	register_touch("player", "worldspawn", "OnPlayerTouchWorld")
 	register_touch("player", "func_breakable", "OnPlayerTouchWorld")
 	register_touch("player", "player", "OnPlayerTouchPlayer")
@@ -91,7 +104,8 @@ public plugin_init()
 	register_forward(FM_AddToFullPack, "FM__AddToFullPack", 1)
 	register_forward(FM_AddToFullPack, "FM__AddToFullPack_Pre")
 	register_message(get_user_msgid("TextMsg"), "TextMsgHook")
-	register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
+	// register_message(get_user_msgid("ScoreInfo"), "ScoreInfoChanged")
+	register_message(get_user_msgid("RoundTime"), "TimerMessageHook")
 	register_logevent("OnFirstRound", 2, "0=World triggered", "1&Restart_Round_")
 	register_logevent("OnFirstRound", 2, "0=World triggered", "1=Game_Commencing")
 
@@ -118,13 +132,24 @@ public plugin_init()
 	RegisterHookChain(RG_CBasePlayer_TraceAttack, "ReapiSupercedeHandler")
 	RegisterHookChain(RG_CBasePlayer_HasRestrictItem, "OnItemHasRestrict")
 
+	// Forwards
+	g_iFwd_RoundEnd = CreateMultiForward("catchmod_round_end", ET_IGNORE, FP_CELL)
+
 	// Cmds
 	register_clcmd("say /speed", "cmd_speed")
 	register_concmd("amx_train", "cmd_train", ADMIN_MAP)
+	register_clcmd("say /train", "cmd_personaltraining")
+	register_clcmd("+cool", "cmd_cool", ADMIN_RCON)
+	register_clcmd("-cool", "cmd_cool", ADMIN_RCON)
 
 	CC_SetPrefix("^4Catch Mod >>")
 }
 
+public plugin_end()
+{
+	DestroyForward(g_iFwd_RoundEnd)
+}
+	
 // Cmds
 public cmd_speed(id)
 {
@@ -149,17 +174,63 @@ public cmd_train(id, level, cid)
 	if (g_bTrainingOn)
 	{
 		set_pcvar_num(g_pCvarForceRespawn, 1)
-		set_pcvar_float(g_pCvarRoundTime, 8.0)
+		set_pcvar_string(g_pCvarRoundEnd, "a")
 		CC_SendMatched(0, id, "^3%s ^1pusna ^3Training ^1Mode-a!", szName)
 	}
 	else
 	{
 		set_pcvar_num(g_pCvarForceRespawn, 0)
-		set_pcvar_float(g_pCvarRoundTime, 1.5)
+		set_pcvar_num(g_pCvarRoundEnd, 0)
 		CC_SendMatched(0, id, "^3%s ^1sprq ^3Training ^1Mode-a!", szName)
 	}
 
 	set_pcvar_num(g_pCvarRoundRestart, 1)
+
+	return PLUGIN_HANDLED
+}
+
+public cmd_personaltraining(id)
+{
+	new iTeam = get_member(id, m_iTeam)
+	if (is_user_alive(id) && iTeam == 3)
+	{
+		CC_SendMatched(id, id, "You are already in training mode!")
+		CC_SendMatched(id, id, "To turn it off just change your team!")
+		return PLUGIN_HANDLED
+	}
+
+	if (iTeam != 3)
+	{
+		rg_set_user_team(id, TEAM_SPECTATOR)
+	}
+
+	if (!is_user_alive(id))
+	{
+		rg_round_respawn(id)
+	}
+	else
+	{
+		set_user_footsteps(id, 1)
+	}
+
+	g_iPlayerTeams[id] = TRAINING
+	g_iTurbo[id] = 100
+	g_bTurboInfinity[id] = true
+	UpdateHud(id)
+
+	return PLUGIN_HANDLED
+}
+
+public cmd_cool(id, level, cid)
+{
+	if (!cmd_access(id, level, cid, 1))
+	{
+		return PLUGIN_HANDLED
+	}
+
+	new szCmd[2]
+	read_argv(0, szCmd, charsmax(szCmd))
+	g_bCantBeSolid[id] = szCmd[0] == '+'
 
 	return PLUGIN_HANDLED
 }
@@ -186,14 +257,11 @@ public client_connect(id)
 	g_iTurboDefault[id][2] = 100
 	g_bTurboInfinity[id] = false
 	g_bSpeedOn[id] = true
-	g_iPlayerStats[id][0] = 0
-	g_iPlayerStats[id][1] = 0
 }
 
 public client_putinserver(id)
 {
 	SetDefaultCatchSettings(id)
-	set_task(0.5, "UpdateStats", id)
 }
 
 SetDefaultCatchSettings(id)
@@ -268,11 +336,7 @@ public OnPlayerJump(id)
 		{
 			g_iWallTouches[id] = get_pcvar_num(g_iCvarTouches) // wall jump, cuz he is not in bhop
 		}
-
-		return HC_SUPERCEDE
 	}
-
-	return HC_CONTINUE
 }
 
 // Touch Wall
@@ -300,29 +364,39 @@ public OnPlayerTouchPlayer(iToucher, iTouched)
 	
 	// Who's the killer
 	new iKiller, iVictim
-	switch (g_iPlayerTeams[iToucher])
+	if (g_iPlayerTeams[iToucher] == CATCHER && g_iPlayerTeams[iTouched] == FLEER)
 	{
-		case CATCHER:
-		{
-			iKiller = iToucher
-			iVictim = iTouched
-		}
-		default:
-		{
-			iKiller = iTouched
-			iVictim = iToucher
-		}
+		iKiller = iToucher
+		iVictim = iTouched
+	}
+	else if (g_iPlayerTeams[iToucher] == FLEER && g_iPlayerTeams[iTouched] == CATCHER)
+	{
+		iKiller = iTouched
+		iVictim = iToucher
 	}
 
-	user_silentkill(iVictim) // Silent killing the victim
-	make_deathmsg(iKiller, iVictim, 1, "weapon_knife") // Making new death msg
+	if (!iKiller)
+	{
+		return PLUGIN_HANDLED
+	}
 
-	g_iPlayerStats[iKiller][0]++ // adding kills to the killer
-	g_iPlayerStats[iVictim][1]++ // adding deaths to the victim
-	UpdateStats(iKiller) // updating killer's stats
-	UpdateStats(iVictim) // updating victim's stats
+	Func_Kill(iKiller, iVictim, get_entvar(iKiller, var_groundentity) == iVictim)
 
 	return PLUGIN_HANDLED
+}
+
+Func_Kill(iKiller, iVictim, bool:bHeadShot)
+{
+	set_member(iVictim, m_bHeadshotKilled, bHeadShot)
+	ExecuteHamB(Ham_Killed, iVictim, iKiller, 0)
+	if (bHeadShot)
+	{
+		new szKillerName[32], szVictimName[32]
+		get_user_name(iKiller, szKillerName, charsmax(szKillerName))
+		get_user_name(iVictim, szVictimName, charsmax(szVictimName))
+		set_dhudmessage(random(255), random(255), random(255))
+		show_dhudmessage(0, "Opss... %s just fell on %s. Ez HeadShot", szKillerName, szVictimName)
+	}
 }
 
 // Eound end & game commencing
@@ -333,12 +407,7 @@ public TextMsgHook(iMsgID, iMsgDest, id)
 
 	if (equal(szMsg, "#Game_Commencing")) // if the game is commencing
 	{
-		// reseting kills & deaths
-		g_iPlayerStats[id][0] = 0
-		g_iPlayerStats[id][1] = 0
-
 		UpdateHud(id) // updating hud
-		UpdateStats(id) // updating stats
 	}
 
 	return PLUGIN_HANDLED
@@ -357,32 +426,31 @@ public OnFirstRound()
 	g_iTeams[1] = FLEER
 	g_iTeams[2] = CATCHER
 
+	g_bNewRound = true
+
 	return PLUGIN_CONTINUE // return
 }
 
 // Round End
 public OnRoundEnd()
 {
+	if (g_bNewRound)
+	{
+		g_bNewRound = false
+		goto ReturnStmt
+	}
 	if (g_bTrainingOn) // if is train
 	{
+		ReturnStmt:
 		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_DRAW) // Setting draw so no one of the teams wins
 		return // return cuz when its training no one wins
 	}
 
 	new iPlayers[32], iPlayersNum
-	new iTemp
+	new iTemp = _:(g_iTeams[1] == CATCHER) + 1
+	get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, g_iTeams[1] == FLEER ? "TERRORIST" : "CT")
 
-	if (g_iTeams[1] == FLEER)
-	{
-		iTemp = 1
-		get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, "TERRORIST")
-	}
-	else
-	{
-		iTemp = 2
-		get_players_ex(iPlayers, iPlayersNum, GetPlayers_ExcludeDead | GetPlayers_MatchTeam, "CT")
-	}
-
+	new iIgnored
 	if (iPlayersNum)
 	{
 		g_iLastWinner = iTemp
@@ -391,15 +459,14 @@ public OnRoundEnd()
 		for (--iPlayersNum; iPlayersNum >= 0; iPlayersNum--)
 		{
 			iTarget = iPlayers[iPlayersNum]
-			g_iPlayerStats[iTarget][0] += 3
-			UpdateStats(iTarget)
+			CATCH_SET_USER_FRAGS(iTarget, CATCH_GET_USER_FRAGS(iTarget) + 3)
 		}
 
 		client_print(0, print_center, "Fleers won the round!")
 	}
 	else
 	{
-		g_iLastWinner = iTemp == 1 ? 2 : 1
+		g_iLastWinner = abs(iTemp - 3)
 		client_print(0, print_center, "Catchers won the round!")
 	}
 
@@ -413,6 +480,8 @@ public OnRoundEnd()
 	{
 		SetHookChainArg(1, ATYPE_INTEGER, WINSTATUS_CTS)
 	}
+
+	ExecuteForward(g_iFwd_RoundEnd, iIgnored, g_iLastWinner)
 
 	if (g_iTeams[1] == FLEER)
 	{
@@ -432,6 +501,7 @@ public OnRoundEnd()
 public OnNewRound()
 {
 	g_bCanKill = true
+	g_bNewRound = false
 }
 
 //Hud
@@ -475,23 +545,6 @@ UpdateHud(id)
 	ShowSyncHudMsg(id, g_iHud[HudStatusEnt][HudSync], szTemp)
 }
 
-// Stats
-public ScoreInfoChanged(iMsgId, iMsgDest, id)
-{	
-	return PLUGIN_HANDLED
-}
-
-public UpdateStats(id)
-{
-	message_begin(MSG_ALL, get_user_msgid("ScoreInfo"))
-	write_byte(id)
-	write_short(g_iPlayerStats[id][0])
-	write_short(g_iPlayerStats[id][1])
-	write_short(0)
-	write_short(get_member(id, m_iTeam))
-	message_end()
-}
-
 // Turbo
 TurboOn(id)
 {
@@ -502,7 +555,7 @@ TurboOn(id)
 
 	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarTurboSpeed)
 	set_entvar(id, var_maxspeed, g_fPlayerSpeed[id])
-	g_iTurbo[id] = (g_iTurbo[id] < 10 && g_bTurboInfinity[id]) ? 100 : g_iTurbo[id] - 10
+	g_iTurbo[id] = (g_iTurbo[id] <= 10 && g_bTurboInfinity[id]) ? 100 : g_iTurbo[id] - 10
 	g_bTurboOn[id] = true
 	UpdateHud(id)
 
@@ -567,7 +620,7 @@ SemiClipPreThink(id)
 			continue
 		}
 
-		if (g_iPlayerTeams[iTarget] == g_iPlayerTeams[id])
+		if (g_iPlayerTeams[iTarget] == g_iPlayerTeams[id] || g_iPlayerTeams[iTarget] == TRAINING || g_iPlayerTeams[id] == TRAINING || g_bCantBeSolid[id] || g_bCantBeSolid[iTarget])
 		{
 			set_pev(iTarget, pev_solid, SOLID_NOT)
 			g_bHasSemiclip[iTarget] = true
@@ -594,15 +647,20 @@ SemiClipPostThink()
 
 public FM__AddToFullPack(iEs, e, iEnt, iHost, iHostFlags, iPlayer, pSet)
 {
-	if (iPlayer)
+	if (iPlayer && is_user_alive(iHost))
 	{
 		new Float:flDistance = entity_range(iHost, iEnt)
 		
-		if (g_bSolid[iHost] && g_bSolid[iEnt] && g_iPlayerTeams[iHost] == g_iPlayerTeams[iEnt] && flDistance < SEMICLIP_DISTANCE && is_user_alive(iHost))
+		if (g_bSolid[iHost] && g_bSolid[iEnt] && (g_iPlayerTeams[iHost] == g_iPlayerTeams[iEnt] || g_iPlayerTeams[iHost] == TRAINING || g_iPlayerTeams[iEnt] == TRAINING || g_bCantBeSolid[iEnt] || g_bCantBeSolid[iHost]) && flDistance < SEMICLIP_DISTANCE && is_user_alive(iHost))
 		{
 			set_es(iEs, ES_Solid, SOLID_NOT)
 			set_es(iEs, ES_RenderMode, kRenderTransAlpha)
 			set_es(iEs, ES_RenderAmt, floatround(flDistance))
+		}
+		
+		if (g_iPlayerTeams[iEnt] == TRAINING && g_iPlayerTeams[iHost] != TRAINING)
+		{
+			set_es(iEs, ES_Effects, EF_NODRAW)
 		}
 	}
 	
@@ -652,6 +710,12 @@ public SpeedEntityThink()
 }
 
 // Restrictions, models and physics
+public OnMenuChooseTeam(id, MenuChooseTeam:iSlot)
+{
+	new iTeam = get_member(id, m_iTeam)
+	g_iPlayerTeams[id] = g_iTeams[iTeam]
+}
+
 public OnPlayerResetMaxSpeed(id)
 {
 	if (is_user_alive(id))
@@ -684,6 +748,19 @@ public OnPlayerSpawn(id)
 	g_bTurboInfinity[id] = g_iPlayerTeams[id] == TRAINING
 	g_fPlayerSpeed[id] = get_pcvar_float(g_iCvarSpeed)
 	set_entvar(g_iHud[HudStatusEnt][TaskEntity], var_nextthink, get_gametime() + 0.5)
+
+	if (get_user_team(id) == 3)
+	{
+		set_user_footsteps(id, 0)
+	}
+}
+
+public TimerMessageHook()
+{
+	if (g_bTrainingOn)
+	{
+		set_msg_arg_int(1, ARG_SHORT, get_timeleft())
+	}
 }
 
 // Stopping some functions
@@ -731,6 +808,9 @@ stock client_cmd_ex(id, const szText[], any:...)
 // Natives
 public plugin_natives()
 {
+	register_native("catchmod_get_fleers", "_native_get_fleers")
+	register_native("catchmod_get_catchers", "_native_get_catchers")
+
 	register_native("catchmod_get_user_team", "_native_get_user_team")
 	register_native("catchmod_set_user_team", "_native_set_user_team")
 
@@ -742,6 +822,38 @@ public plugin_natives()
 
 	register_native("catchmod_get_user_infiniteturbo", "_native_get_user_infiniteturbo")
 	register_native("catchmod_set_user_infiniteturbo", "_native_set_user_infiniteturbo")
+}
+
+public _native_get_fleers()
+{
+	if (g_iTeams[1] == FLEER)
+	{
+		return 1
+	}
+	else if (g_iTeams[2] == FLEER)
+	{
+		return 2
+	}
+	else
+	{
+		return -1
+	}
+}
+
+public _native_get_catchers()
+{
+	if (g_iTeams[1] == CATCHER)
+	{
+		return 1
+	}
+	else if (g_iTeams[2] == CATCHER)
+	{
+		return 2
+	}
+	else
+	{
+		return -1
+	}
 }
 
 public Teams:_native_get_user_team()
@@ -766,7 +878,7 @@ public _native_set_user_turbo()
 
 public _native_get_user_defaultturbo()
 {
-	return g_iTurboDefault[get_param(1)]
+	return g_iTurboDefault[get_param(1)][get_param(2)]
 }
 
 public _native_set_user_defaultturbo()
@@ -783,3 +895,13 @@ public _native_set_user_infiniteturbo()
 {
 	g_bTurboInfinity[get_param(1)] = bool:get_param(2)
 }
+
+// DEBUG_SCORE(id, szUniqueID[64])
+// {
+// 	new szName[32]
+// 	get_user_name(id, szName, charsmax(szName))
+// 	client_print(id, print_chat, "szUniqueID => %s", szUniqueID)
+// 	client_print(id, print_chat, "szName => %s", szName)
+// 	client_print(id, print_chat, "fKills => %.f", get_entvar(id, var_frags))
+// 	client_print(id, print_chat, "iDeaths => %i", get_member(id, m_iDeaths))
+// }

@@ -14,7 +14,7 @@ enum Teams
 	NONE
 }
 
-new g_szTeamsNames[Teams][MAXPLAYERSVAR] =
+stock g_szTeamsNames[Teams][MAXPLAYERSVAR] =
 {
 	"Fleer",
 	"Catcher",

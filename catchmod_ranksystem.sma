@@ -46,9 +46,7 @@ enum CfgSections
 enum _:LevelData
 {
 	LevelName[64],
-	LevelColor[64],
 	LevelXP,
-	LevelInfo[64]
 }
 
 // Global Vars
@@ -161,7 +159,7 @@ bool:Player_UpdateLevel(id, bool:bDecreasing = false)
 		}
 	}
 
-	g_iPlayerLevel[id] = iLevel
+	g_iPlayersLevels[id] = iLevel
 	return bRetVal
 }
 
@@ -259,19 +257,18 @@ LoadCfg()
 
 			switch (iSection)
 			{
+				/*
 				case SectionSettings:
 				{
 					strtok2(szLine, szKey, charsmax(szKey), szValue, charsmax(szValue), '=', 1)
 
 
 				}
+				*/
 
 				case SectionLevels:
 				{
-					iParsed = parse(szLine, eTempArray[LevelName], charsmax(eTempArray[LevelName]), 
-						eTempArray[LevelColor], charsmax(eTempArray[LevelColor]), 
-						szValue, charsmax(szValue), 
-						eTempArray[LevelInfo], charsmax(eTempArray[LevelInfo]))
+					iParsed = parse(szLine, eTempArray[LevelName], charsmax(eTempArray[LevelName]), szValue, charsmax(szValue))
 
 					if (iParsed < 4)
 					{
@@ -295,4 +292,34 @@ LoadCfg()
 // Add your code here...
 
 // Natives
-// Add your code here...
+public plugin_natives()
+{
+	register_native("cranksys_get_player_xp", "_native_get_player_xp")
+	register_native("cranksys_set_player_xp", "_native_set_player_xp")
+	
+	register_native("cranksys_get_player_level", "_native_get_player_level")
+	register_native("cranksys_set_player_level", "_native_set_player_level")
+}
+
+public _native_get_player_xp()
+{
+	return g_iPlayersXP[get_param(0)]
+}
+
+public _native_set_player_xp()
+{
+	new iXP = get_param(1), id = get_param(0)
+	Player_UpdateXP(id, iXP, iXP < g_iPlayersXP[id] ? true : false)
+}
+
+public _native_get_player_level()
+{
+	return g_iPlayersLevels[get_param(0)]
+}
+
+public _native_set_player_level()
+{
+	new id = get_param(0), eTempArray[LevelData]
+	ArrayGetArray(g_aLevels, get_param(1), eTempArray)
+	Player_UpdateXP(id, eTempArray[LevelXP], eTempArray[LevelXP] < g_iPlayersXP[id] ? true : false)
+}

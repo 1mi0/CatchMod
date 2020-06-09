@@ -28,7 +28,11 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR)
 	register_concmd("amx_show", "OnCmdShow", ADMIN_BAN, " - Used to check if the player has any other nicknames")
-	SQL_SetAffinity("sqlite")
+	if (SQL_SetAffinity("sqlite") == 0)
+	{
+		log_amx("No sqlite driver found!")
+		set_fail_state("No sqlite driver found!")
+	}
 }
 
 public plugin_cfg()
@@ -77,7 +81,7 @@ public client_authorized(id)
 public client_infochanged(id)
 {
 	// Check if the player have changed their name 
-	new szNewName[33]
+	new szNewName[64]
 	get_user_info(id, "name", szNewName, charsmax(szNewName))
 	if (equal(szNewName, g_szUserName[id]))
 	{
@@ -120,10 +124,10 @@ public OnCmdShow(id, iLevel, iCID)
 
 Func_RequestPlayer(id, iTargetPlayer)
 {
-	// Get addtional user information to track him by 
+	// Get addtional user information to track them by 
 	new szUserIP[33], szUserAuthID[33]
-	get_user_ip(id, szUserIP, charsmax(szUserIP), 1)
-	get_user_authid(id, szUserAuthID, charsmax(szUserAuthID))
+	get_user_ip(iTargetPlayer, szUserIP, charsmax(szUserIP), 1)
+	get_user_authid(iTargetPlayer, szUserAuthID, charsmax(szUserAuthID))
 
 	// Format the query and launch a thread worker to wait for its execution
 	new szQuery[128], szID[2]
@@ -143,10 +147,10 @@ public OnCommandSelectExecuted(iFailState, Handle:iQuery, szError[], iErrorNum, 
 
 
 	new id = szData[0], iTargetPlayer = szData[1]
-	// Get addtional user information to track him by 
+	// Get addtional user information to track them by 
 	new szUserIP[33], szUserAuthID[33], bool:bPlayerSteam = is_user_steam(iTargetPlayer)
 	get_user_ip(iTargetPlayer, szUserIP, charsmax(szUserIP), 1)
-	get_user_authid(id, szUserAuthID, charsmax(szUserAuthID))
+	get_user_authid(iTargetPlayer, szUserAuthID, charsmax(szUserAuthID))
 
 	new eTempArray[PlayerInfo]
 	new iRowCount = SQL_NumResults(iQuery)
@@ -213,12 +217,13 @@ public OnCommandSelectExecuted(iFailState, Handle:iQuery, szError[], iErrorNum, 
 		}
 	}
 	console_print(id, "*************************************************")
+	ArrayClear(g_aTempPlayerArray)
 
 }
 
 Func_SavePlayerName(id)
 {
-	// Get addtional user information to track him by 
+	// Get addtional user information to track them by 
 	new szUserIP[33], szUserAuthID[33]
 	get_user_ip(id, szUserIP, charsmax(szUserIP), 1)
 	get_user_authid(id, szUserAuthID, charsmax(szUserAuthID))
@@ -248,7 +253,7 @@ public OnSelectExecuted(iFailState, Handle:iQuery, szError[], iErrorCode, szData
 	new id = szData[0]
 	log_amx("[%s] Saving user %s", PLUGIN, g_szUserName[id])
 	server_print("[%s] Saving user %s", PLUGIN, g_szUserName[id])
-	// Get addtional user information to track him by 
+	// Get addtional user information to track them by 
 	new szUserIP[33], szUserAuthID[33]
 	get_user_ip(id, szUserIP, charsmax(szUserIP), 1)
 	get_user_authid(id, szUserAuthID, charsmax(szUserAuthID))

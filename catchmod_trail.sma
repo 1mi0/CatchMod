@@ -367,6 +367,13 @@ public ColorsMenu_Handler(id, iMenu, iItem)
 
 	UpdateUserTrail(id)
 
+	if (get_user_team(id) == 3 && is_user_alive(id))
+	{
+		set_entvar(id, var_renderfx, kRenderFxGlowShell)
+		set_entvar(id, var_rendercolor, g_eUserSettings[id][TrailColors])
+		set_entvar(id, var_renderamt, 25.0)
+	}
+
 	menu_cancel(id)
 	OpenTrailMenu(id)
 	return PLUGIN_HANDLED
@@ -458,6 +465,11 @@ public task_PreApply(iTaskID)
 	}
 	#endif
 
+	if (g_eUserSettings[id][TrailOn] && get_user_team(id) == 3)
+	{
+		set_entvar(id, var_rendercolor, g_eUserSettings[id][TrailColors])
+	}
+
 	UpdateUserTrail(id)
 	set_task_ex(10.0, "task_Apply", id + TASKID, .flags = SetTask_Repeat)
 }
@@ -476,20 +488,23 @@ UpdateUserTrail(id)
 {
 	KillUserTrail(id)
 
-	new eTempArray[TrailTypeData]
-	ArrayGetArray(g_aTypesArray, g_eUserSettings[id][TrailType], eTempArray)
+	if (get_user_team(id) != 3 && is_user_alive(id))
+	{
+		new eTempArray[TrailTypeData]
+		ArrayGetArray(g_aTypesArray, g_eUserSettings[id][TrailType], eTempArray)
 
-	message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
-	write_byte(TE_BEAMFOLLOW)
-	write_short(id)
-	write_short(eTempArray[TypeSpriteID])
-	write_byte(g_eTrailsSettings[TrailLife] * 10)
-	write_byte(eTempArray[TypeSize])
-	write_byte(g_eUserSettings[id][TrailColors][0])
-	write_byte(g_eUserSettings[id][TrailColors][1])
-	write_byte(g_eUserSettings[id][TrailColors][2])
-	write_byte(eTempArray[TypeBrightness])
-	message_end()
+		message_begin(MSG_BROADCAST, SVC_TEMPENTITY)
+		write_byte(TE_BEAMFOLLOW)
+		write_short(id)
+		write_short(eTempArray[TypeSpriteID])
+		write_byte(g_eTrailsSettings[TrailLife] * 10)
+		write_byte(eTempArray[TypeSize])
+		write_byte(g_eUserSettings[id][TrailColors][0])
+		write_byte(g_eUserSettings[id][TrailColors][1])
+		write_byte(g_eUserSettings[id][TrailColors][2])
+		write_byte(eTempArray[TypeBrightness])
+		message_end()
+	}
 }
 
 KillUserTrail(id)
@@ -518,7 +533,7 @@ checkUserTrail(id)
 
 public OnPlayerPreThink(id)
 {
-	if (!is_user_alive(id))
+	if (!is_user_alive(id) || get_user_team(id) == 3)
 	{
 		return HC_CONTINUE
 	}

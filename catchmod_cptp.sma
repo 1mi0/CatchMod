@@ -50,14 +50,15 @@ public Func_Channel(id)
 	}
 
 	new szArg[192]
-	read_argv(1, szArg, charsmax(szArg))
+	read_args(szArg, charsmax(szArg))
 
-	if (!replace_all(szArg, charsmax(szArg), "/channel ", ""))
+	if (!replace_all(szArg, charsmax(szArg), "/ch ", ""))
 	{
 		return PLUGIN_CONTINUE
 	}
 	trim(szArg)
 
+	remove_quotes(szArg)
 	new channel = str_to_num(szArg)
 	if (1 > channel)
 	{
@@ -114,7 +115,7 @@ public Menu_TPCP_Handler(id, iMenu, iItem)
 		}
 		case 2:
 		{
-			client_cmd(id, "messagemode /channel ")
+			client_cmd(id, "messagemode ^"say /ch ^"")
 		}
 	}
 
